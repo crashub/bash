@@ -16,3 +16,6 @@ Configure and build the package
 
     cd libbash; ./autogen.sh; make
 
+The artifact from this project is published as org.gentoo.libbash:bashparser:jar:0.1 
+in the NitorCreations [github maven repo](https://github.com/NitorCreations/maven-repository).
+

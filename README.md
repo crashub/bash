@@ -1,21 +1,11 @@
-The java classes in this project are directly generated from [libbash](http://www.gentoo.org/proj/en/libbash/index.xml).
+# Bash interpreter
 
-This is what you need to install on a gentoo server to get libbash to compile and generate 
-the java classes.
+A proof of concept to see how feasible a bash interpreter for the JVM would/could be.
 
-    emerge --sync
-    emerge git paludis vim dev-libs/boost oracle-jdk-bin gtest antlr antlr-c
+# Current status
 
-You will have to play with use flags to get everything there to install.
+Very early prototype built on top of the libbash ANTLR grammar, aims to implement basic stuff.
 
-Then just checkout the source
+# Wanna help ?
 
-    git clone git://git.overlays.gentoo.org/proj/libbash.git
-
-Configure and build the package
-
-    cd libbash; ./autogen.sh; make
-
-The artifact from this project is published as org.gentoo.libbash:bashparser:jar:0.1 
-in the NitorCreations [github maven repo](https://github.com/NitorCreations/maven-repository).
-
+Sure there are plenty of things to do, get in touch with me.

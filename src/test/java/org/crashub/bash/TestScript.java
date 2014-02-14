@@ -53,6 +53,12 @@ public class TestScript extends TestCase {
     assertEquals("6", i);
   }
 
+  public void testARITHMETIC_EXPRESSION_SLASH() throws Exception {
+    Script script = new Script("$((4/2))\n");
+    Object i = script.execute();
+    assertEquals("2", i);
+  }
+
   public void testSTRING() throws Exception {
     Script script = new Script("2+3\n");
     Object i = script.execute();

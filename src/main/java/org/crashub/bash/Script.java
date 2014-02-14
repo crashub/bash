@@ -166,6 +166,7 @@ public class Script {
         java_libbashParser.MINUS,
         java_libbashParser.PLUS,
         java_libbashParser.TIMES,
+        java_libbashParser.SLASH,
         java_libbashParser.VAR_REF,
         java_libbashParser.LEQ,
         java_libbashParser.DIGIT);
@@ -176,7 +177,8 @@ public class Script {
     switch (tree.getType()) {
       case java_libbashParser.PLUS:
       case java_libbashParser.MINUS:
-      case java_libbashParser.TIMES: {
+      case java_libbashParser.TIMES:
+      case java_libbashParser.SLASH: {
         Tree leftTree = tree.getChild(0);
         Tree rightTree = tree.getChild(1);
         Object left = evalExpression(leftTree, context);
@@ -190,6 +192,8 @@ public class Script {
             return l - r;
           case java_libbashParser.TIMES:
             return l * r;
+          case java_libbashParser.SLASH:
+            return l / r;
           default:
             throw new AssertionError();
         }

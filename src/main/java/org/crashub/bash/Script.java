@@ -163,6 +163,7 @@ public class Script {
     Tree arithmetic = assertTree(tree.getChild(0), java_libbashParser.ARITHMETIC);
     Tree expression = assertTree(
         arithmetic.getChild(0),
+        java_libbashParser.MINUS,
         java_libbashParser.PLUS,
         java_libbashParser.VAR_REF,
         java_libbashParser.LEQ,
@@ -172,14 +173,22 @@ public class Script {
 
   private Object evalExpression(Tree tree, Context context) {
     switch (tree.getType()) {
-      case java_libbashParser.PLUS: {
+      case java_libbashParser.PLUS:
+      case java_libbashParser.MINUS: {
         Tree leftTree = tree.getChild(0);
         Tree rightTree = tree.getChild(1);
         Object left = evalExpression(leftTree, context);
         Object right = evalExpression(rightTree, context);
         int l = fooInt(left);
         int r = fooInt(right);
-        return l + r;
+        switch (tree.getType()) {
+          case java_libbashParser.PLUS:
+            return l + r;
+          case java_libbashParser.MINUS:
+            return l - r;
+          default:
+            throw new AssertionError();
+        }
       }
       case java_libbashParser.VAR_REF: {
         Tree ref = assertTree(tree.getChild(0), java_libbashParser.LETTER);

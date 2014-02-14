@@ -41,6 +41,12 @@ public class TestScript extends TestCase {
     assertEquals("5", i);
   }
 
+  public void testARITHMETIC_EXPRESSION_MINUS() throws Exception {
+    Script script = new Script("$((3-2))\n");
+    Object i = script.execute();
+    assertEquals("1", i);
+  }
+
   public void testSTRING() throws Exception {
     Script script = new Script("2+3\n");
     Object i = script.execute();

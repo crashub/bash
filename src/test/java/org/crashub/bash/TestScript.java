@@ -47,6 +47,12 @@ public class TestScript extends TestCase {
     assertEquals("1", i);
   }
 
+  public void testARITHMETIC_EXPRESSION_TIMES() throws Exception {
+    Script script = new Script("$((3*2))\n");
+    Object i = script.execute();
+    assertEquals("6", i);
+  }
+
   public void testSTRING() throws Exception {
     Script script = new Script("2+3\n");
     Object i = script.execute();

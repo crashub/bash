@@ -49,10 +49,12 @@ public class Script {
     tree = (Tree)parser(s).start().getTree();
   }
 
-  public Context execute() {
-    Context context = new Context();
-    execute(tree, context);
-    return context;
+  public Object execute() {
+    return execute(tree, new Context());
+  }
+
+  public Object execute(Context context) {
+    return execute(tree, context);
   }
 
   private UnsupportedOperationException unsupported(Tree tree) {
@@ -95,6 +97,8 @@ public class Script {
         return null;
       case java_libbashParser.ARITHMETIC_EXPRESSION:
         return _ARITHMETIC_EXPRESSION(tree, context);
+      case java_libbashParser.STRING:
+        return _STRING(tree, context);
       default:
         throw unsupported(tree);
     }
@@ -125,7 +129,7 @@ public class Script {
       Tree lhs = assertTree(child.getChild(0), java_libbashParser.LETTER);
       Tree rhs = assertTree(child.getChild(1), java_libbashParser.STRING);
       String name = lhs.getText();
-      Object value = _STRING(rhs.getChild(0), context);
+      Object value = _STRING(rhs, context);
       context.bindings.put(name, value);
     } else {
       throw unsupported(tree);
@@ -133,14 +137,26 @@ public class Script {
   }
 
   private Object _STRING(Tree tree, Context context) {
-    switch (tree.getType()) {
-      case java_libbashParser.DIGIT:
-        return Integer.parseInt(tree.getText());
-      case java_libbashParser.ARITHMETIC_EXPRESSION:
-        return _ARITHMETIC_EXPRESSION(tree, context);
-      default:
-        throw unsupported(tree);
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0;i < tree.getChildCount();i++) {
+      Tree child = tree.getChild(i);
+      Object o;
+      switch (child.getType()) {
+        case java_libbashParser.DIGIT:
+          o = Integer.parseInt(child.getText());
+          break;
+        case java_libbashParser.ARITHMETIC_EXPRESSION:
+          o = _ARITHMETIC_EXPRESSION(child, context);
+        break;
+        case java_libbashParser.PLUS:
+          o = "+";
+          break;
+        default:
+          throw unsupported(child);
+      }
+      sb.append(o);
     }
+    return sb.toString();
   }
 
   private Object _ARITHMETIC_EXPRESSION(Tree tree, Context context) {
@@ -161,11 +177,9 @@ public class Script {
         Tree rightTree = tree.getChild(1);
         Object left = evalExpression(leftTree, context);
         Object right = evalExpression(rightTree, context);
-        if (left instanceof Integer && right instanceof Integer) {
-          return ((Integer)left + (Integer)right);
-        } else {
-          throw new UnsupportedOperationException("Not implemented");
-        }
+        int l = fooInt(left);
+        int r = fooInt(right);
+        return l + r;
       }
       case java_libbashParser.VAR_REF: {
         Tree ref = assertTree(tree.getChild(0), java_libbashParser.LETTER);
@@ -179,14 +193,22 @@ public class Script {
         Tree rightTree = tree.getChild(1);
         Object left = evalExpression(leftTree, context);
         Object right = evalExpression(rightTree, context);
-        if (left instanceof Integer && right instanceof Integer) {
-          return ((Integer)left <= (Integer)right);
-        } else {
-          throw new UnsupportedOperationException("Not implemented");
-        }
+        int l = fooInt(left);
+        int r = fooInt(right);
+        return l <= r;
       }
       default:
         throw unsupported(tree);
+    }
+  }
+
+  private int fooInt(Object o) {
+    if (o instanceof Integer) {
+      return (Integer)o;
+    } else if (o instanceof String) {
+      return Integer.parseInt((String)o);
+    } else {
+      throw new UnsupportedOperationException();
     }
   }
 

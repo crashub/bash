@@ -27,15 +27,34 @@ public class TestScript extends TestCase {
         "esac").prettyPrint();
   }
 
-  public void testArithmetic() throws Exception {
-    System.out.println("Arithmetic:");
-    Script script = new Script(
-        "i=0\n" +
-        "i=$((i+1))");
-    script.prettyPrint();
-    Context context = script.execute();
+  public void testVARIABLE_DEFINITIONS() throws Exception {
+    Script script = new Script("i=3\n");
+    Context context = new Context();
+    script.execute(context);
     Object i = context.getBinding("i");
-    assertEquals(1, i);
+    assertEquals("3", i);
+  }
+
+  public void testARITHMETIC_EXPRESSION_PLUS() throws Exception {
+    Script script = new Script("$((2+3))\n");
+    Object i = script.execute();
+    assertEquals("5", i);
+  }
+
+  public void testSTRING() throws Exception {
+    Script script = new Script("2+3\n");
+    Object i = script.execute();
+    assertEquals("2+3", i);
+  }
+
+  public void testVAR_REF() throws Exception {
+    System.out.println("Arithmetic:");
+    Script script = new Script("$((i))");
+    script.prettyPrint();
+    Context context = new Context();
+    context.setBinding("i", "3");
+    Object i = script.execute(context);
+    assertEquals("3", i);
   }
 
   public void testWhile() throws Exception {
@@ -47,8 +66,9 @@ public class TestScript extends TestCase {
         "   i=$((i+1))\n" +
         "done");
     script.prettyPrint();
-    Context context = script.execute();
+    Context context = new Context();
+    script.execute(context);
     Object i = context.getBinding("i");
-    assertEquals(6, i);
+    assertEquals("6", i);
   }
 }

@@ -66,9 +66,7 @@ public class TestScript extends TestCase {
   }
 
   public void testVAR_REF() throws Exception {
-    System.out.println("Arithmetic:");
     Script script = new Script("$((i))");
-    script.prettyPrint();
     Context context = new Context();
     context.setBinding("i", "3");
     Object i = script.execute(context);

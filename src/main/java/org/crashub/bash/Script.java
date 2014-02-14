@@ -81,37 +81,31 @@ public class Script {
     throw new UnsupportedOperationException("Was not expected tree " + constants.get(tree.getType()));
   }
 
-  private void execute(Tree tree, Context context) {
+  private Object execute(Tree tree, Context context) {
     switch (tree.getType()) {
       case java_libbashParser.LIST:
-        executeLIST(tree, context);
-        break;
+        return _LIST(tree, context);
       case java_libbashParser.COMMAND:
-        executeCOMMAND(tree, context);
-        break;
+        return _COMMAND(tree, context);
       case java_libbashParser.VARIABLE_DEFINITIONS:
-        executeVARIABLE_DEFINITIONS(tree, context);
-        break;
+        _VARIABLE_DEFINITIONS(tree, context);
+        return null;
       case java_libbashParser.WHILE:
-        executeWHILE(tree, context);
-        break;
+        _WHILE(tree, context);
+        return null;
+      case java_libbashParser.ARITHMETIC_EXPRESSION:
+        return _ARITHMETIC_EXPRESSION(tree, context);
       default:
         throw unsupported(tree);
     }
   }
 
-  private void executeWHILE(Tree tree, Context context) {
-    Tree expression = assertTree(
-        assertTree(
-            assertTree(
-                assertTree(
-                    tree.getChild(0),
-                    java_libbashParser.LIST).getChild(0),
-                java_libbashParser.COMMAND).getChild(0),
-            java_libbashParser.ARITHMETIC_EXPRESSION).getChild(0),
-        java_libbashParser.ARITHMETIC);
+  private void _WHILE(Tree tree, Context context) {
+    Tree condition = assertTree(
+        tree.getChild(0),
+        java_libbashParser.LIST).getChild(0);
     while (true) {
-      Object value = evalExpression(expression.getChild(0), context);
+      Object value = _LIST(condition, context);
       if (value instanceof Boolean) {
         if (!(Boolean)value) {
           break;
@@ -125,30 +119,39 @@ public class Script {
     }
   }
 
-  private void executeVARIABLE_DEFINITIONS(Tree tree, Context context) {
+  private void _VARIABLE_DEFINITIONS(Tree tree, Context context) {
     Tree child = tree.getChild(0);
     if (child.getType() == java_libbashParser.EQUALS) {
       Tree lhs = assertTree(child.getChild(0), java_libbashParser.LETTER);
       Tree rhs = assertTree(child.getChild(1), java_libbashParser.STRING);
       String name = lhs.getText();
-      Object value = evalString(rhs.getChild(0), context);
+      Object value = _STRING(rhs.getChild(0), context);
       context.bindings.put(name, value);
     } else {
       throw unsupported(tree);
     }
   }
 
-  private Object evalString(Tree tree, Context context) {
+  private Object _STRING(Tree tree, Context context) {
     switch (tree.getType()) {
       case java_libbashParser.DIGIT:
         return Integer.parseInt(tree.getText());
       case java_libbashParser.ARITHMETIC_EXPRESSION:
-        Tree arithmetic = assertTree(tree.getChild(0), java_libbashParser.ARITHMETIC);
-        Tree expression = assertTree(arithmetic.getChild(0), java_libbashParser.PLUS, java_libbashParser.VAR_REF, java_libbashParser.DIGIT);
-        return evalExpression(expression, context);
+        return _ARITHMETIC_EXPRESSION(tree, context);
       default:
         throw unsupported(tree);
     }
+  }
+
+  private Object _ARITHMETIC_EXPRESSION(Tree tree, Context context) {
+    Tree arithmetic = assertTree(tree.getChild(0), java_libbashParser.ARITHMETIC);
+    Tree expression = assertTree(
+        arithmetic.getChild(0),
+        java_libbashParser.PLUS,
+        java_libbashParser.VAR_REF,
+        java_libbashParser.LEQ,
+        java_libbashParser.DIGIT);
+    return evalExpression(expression, context);
   }
 
   private Object evalExpression(Tree tree, Context context) {
@@ -187,16 +190,18 @@ public class Script {
     }
   }
 
-  private void executeCOMMAND(Tree tree, Context context) {
-    execute(tree.getChild(0), context);
+  private Object _COMMAND(Tree tree, Context context) {
+    return execute(tree.getChild(0), context);
   }
 
-  private void executeLIST(Tree tree, Context context) {
+  private Object _LIST(Tree tree, Context context) {
     int count = tree.getChildCount();
+    Object last = null;
     for (int index = 0; index < count;index++) {
       Tree child = tree.getChild(index);
-      execute(child, context);
+      last = execute(child, context);
     }
+    return last;
   }
 
   public void prettyPrint() {

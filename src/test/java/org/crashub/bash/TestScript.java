@@ -108,6 +108,30 @@ public class TestScript extends TestCase {
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
     assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc}"));
+    assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc?does not exist}"));
+    assertEquals("", eval(new Context().setBinding("abc", ""), "${abc?does not exist}"));
+    try {
+      eval("${abc?does not exist}");
+      fail();
+    }
+    catch (RuntimeException expected) {
+      assertEquals("does not exist", expected.getMessage());
+    }
+    assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc:?does not exist}"));
+    try {
+      eval(new Context().setBinding("abc", ""), "${abc:?does not exist}");
+      fail();
+    }
+    catch (RuntimeException expected) {
+      assertEquals("does not exist", expected.getMessage());
+    }
+    try {
+      eval("${abc:?does not exist}");
+      fail();
+    }
+    catch (RuntimeException expected) {
+      assertEquals("does not exist", expected.getMessage());
+    }
   }
 
   public void testVAR_REF() throws Exception {

@@ -152,7 +152,9 @@ public class Script {
           o = _VAR_REF(child, context);
           break;
         case java_libbashParser.LETTER:
-          o = evalExpression(child, context);
+        case java_libbashParser.NAME:
+        case java_libbashParser.BLANK:
+          o = child.getText();
           break;
         default:
           throw unsupported(child);
@@ -166,9 +168,25 @@ public class Script {
     Tree child = tree.getChild(0);
     switch (child.getType()) {
       case java_libbashParser.LETTER:
-      case java_libbashParser.NAME:
+      case java_libbashParser.NAME: {
         return context.bindings.get(child.getText());
-      case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
+      }
+      case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL:
+      case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET: {
+        String identifier = child.getChild(0).getText();
+        if (context.bindings.containsKey(identifier)) {
+          Object o = context.bindings.get(identifier);
+          if (child.getType() == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
+            if (o.toString().length() > 0) {
+              return o;
+            }
+          } else {
+            return o;
+          }
+        }
+        String message = _STRING(child.getChild(1), context).toString();
+        throw new RuntimeException(message);
+      }
       default:
         throw unsupported(child);
     }

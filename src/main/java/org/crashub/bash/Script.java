@@ -110,8 +110,9 @@ public class Script {
         java_libbashParser.LIST).getChild(0);
     while (true) {
       Object value = _LIST(condition, context);
-      if (value instanceof Boolean) {
-        if (!(Boolean)value) {
+      if (value instanceof Integer) {
+        int v = (Integer)value;
+        if (v == 0) {
           break;
         } else {
           Tree body = tree.getChild(1);
@@ -167,8 +168,13 @@ public class Script {
         java_libbashParser.PLUS,
         java_libbashParser.TIMES,
         java_libbashParser.SLASH,
+        java_libbashParser.LESS_THAN,
         java_libbashParser.VAR_REF,
         java_libbashParser.LEQ,
+        java_libbashParser.GEQ,
+        java_libbashParser.EQUALS_TO,
+        java_libbashParser.NOT_EQUALS,
+        java_libbashParser.GREATER_THAN,
         java_libbashParser.DIGIT);
     return evalExpression(expression, context);
   }
@@ -178,7 +184,13 @@ public class Script {
       case java_libbashParser.PLUS:
       case java_libbashParser.MINUS:
       case java_libbashParser.TIMES:
-      case java_libbashParser.SLASH: {
+      case java_libbashParser.SLASH:
+      case java_libbashParser.LESS_THAN:
+      case java_libbashParser.LEQ:
+      case java_libbashParser.GEQ:
+      case java_libbashParser.EQUALS_TO:
+      case java_libbashParser.NOT_EQUALS:
+      case java_libbashParser.GREATER_THAN: {
         Tree leftTree = tree.getChild(0);
         Tree rightTree = tree.getChild(1);
         Object left = evalExpression(leftTree, context);
@@ -194,6 +206,18 @@ public class Script {
             return l * r;
           case java_libbashParser.SLASH:
             return l / r;
+          case java_libbashParser.LESS_THAN:
+            return l < r ? 1 : 0;
+          case java_libbashParser.LEQ:
+            return l <= r ? 1 : 0;
+          case java_libbashParser.GEQ:
+            return l >= r ? 1 : 0;
+          case java_libbashParser.EQUALS_TO:
+            return l == r ? 1 : 0;
+          case java_libbashParser.NOT_EQUALS:
+            return l != r ? 1 : 0;
+          case java_libbashParser.GREATER_THAN:
+            return l > r ? 1 : 0;
           default:
             throw new AssertionError();
         }
@@ -204,15 +228,6 @@ public class Script {
       }
       case java_libbashParser.DIGIT: {
         return Integer.parseInt(tree.getText());
-      }
-      case java_libbashParser.LEQ: {
-        Tree leftTree = tree.getChild(0);
-        Tree rightTree = tree.getChild(1);
-        Object left = evalExpression(leftTree, context);
-        Object right = evalExpression(rightTree, context);
-        int l = fooInt(left);
-        int r = fooInt(right);
-        return l <= r;
       }
       default:
         throw unsupported(tree);

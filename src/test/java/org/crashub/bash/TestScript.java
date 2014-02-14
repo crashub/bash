@@ -1,6 +1,7 @@
 package org.crashub.bash;
 
 import junit.framework.TestCase;
+import org.antlr.runtime.RecognitionException;
 import org.crashub.bash.Context;
 import org.crashub.bash.Script;
 
@@ -33,6 +34,46 @@ public class TestScript extends TestCase {
     script.execute(context);
     Object i = context.getBinding("i");
     assertEquals("3", i);
+  }
+
+  public void testARITHMETIC_EXPRESSION_LESS_THAN() throws Exception {
+    assertEquals("0", eval("$((2<2))\n"));
+    assertEquals("1", eval("$((2<3))\n"));
+    assertEquals("0", eval("$((3<2))\n"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_LEQ() throws Exception {
+    assertEquals("1", eval("$((2<=2))\n"));
+    assertEquals("1", eval("$((2<=3))\n"));
+    assertEquals("0", eval("$((3<=2))\n"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_EQUALS_TO() throws Exception {
+    assertEquals("1", eval("$((2==2))\n"));
+    assertEquals("0", eval("$((2==3))\n"));
+    assertEquals("0", eval("$((3==2))\n"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_EQUALS_NOT_EQUALS() throws Exception {
+    assertEquals("0", eval("$((2!=2))\n"));
+    assertEquals("1", eval("$((2!=3))\n"));
+    assertEquals("1", eval("$((3!=2))\n"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_GREATER_THAN() throws Exception {
+    assertEquals("0", eval("$((2>2))\n"));
+    assertEquals("0", eval("$((2>3))\n"));
+    assertEquals("1", eval("$((3>2))\n"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_GEQ() throws Exception {
+    assertEquals("1", eval("$((2>=2))\n"));
+    assertEquals("0", eval("$((2>=3))\n"));
+    assertEquals("1", eval("$((3>=2))\n"));
+  }
+
+  private Object eval(String s) throws RecognitionException {
+    return new Script(s).execute();
   }
 
   public void testARITHMETIC_EXPRESSION_PLUS() throws Exception {

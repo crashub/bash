@@ -50,11 +50,16 @@ public class Script {
   }
 
   public Object execute() {
-    return execute(tree, new Context());
+    return execute(new Context());
   }
 
   public Object execute(Context context) {
-    return execute(tree, context);
+    switch (tree.getType()) {
+      case java_libbashParser.LIST:
+        return _LIST(tree, context);
+      default:
+        throw unsupported(tree);
+    }
   }
 
   private UnsupportedOperationException unsupported(Tree tree) {
@@ -83,27 +88,6 @@ public class Script {
     throw new UnsupportedOperationException("Was not expected tree " + constants.get(tree.getType()));
   }
 
-  private Object execute(Tree tree, Context context) {
-    switch (tree.getType()) {
-      case java_libbashParser.LIST:
-        return _LIST(tree, context);
-      case java_libbashParser.COMMAND:
-        return _COMMAND(tree, context);
-      case java_libbashParser.VARIABLE_DEFINITIONS:
-        _VARIABLE_DEFINITIONS(tree, context);
-        return null;
-      case java_libbashParser.WHILE:
-        _WHILE(tree, context);
-        return null;
-      case java_libbashParser.ARITHMETIC_EXPRESSION:
-        return _ARITHMETIC_EXPRESSION(tree, context);
-      case java_libbashParser.STRING:
-        return _STRING(tree, context);
-      default:
-        throw unsupported(tree);
-    }
-  }
-
   private void _WHILE(Tree tree, Context context) {
     Tree condition = assertTree(
         tree.getChild(0),
@@ -116,7 +100,13 @@ public class Script {
           break;
         } else {
           Tree body = tree.getChild(1);
-          execute(body, context);
+          switch (body.getType()) {
+            case java_libbashParser.LIST:
+              _LIST(body, context);
+              break;
+            default:
+              throw unsupported(body);
+          }
         }
       } else {
         throw new UnsupportedOperationException("Not implemented");
@@ -152,12 +142,28 @@ public class Script {
         case java_libbashParser.PLUS:
           o = "+";
           break;
+        case java_libbashParser.VAR_REF:
+          o = _VAR_REF(child, context);
+          break;
+        case java_libbashParser.LETTER:
+          o = evalExpression(child, context);
+          break;
         default:
           throw unsupported(child);
       }
       sb.append(o);
     }
     return sb.toString();
+  }
+
+  private Object _VAR_REF(Tree tree, Context context) {
+    Tree child = tree.getChild(0);
+    switch (child.getType()) {
+      case java_libbashParser.LETTER:
+        return context.bindings.get(child.getText());
+      default:
+        throw unsupported(child);
+    }
   }
 
   private Object _ARITHMETIC_EXPRESSION(Tree tree, Context context) {
@@ -223,8 +229,7 @@ public class Script {
         }
       }
       case java_libbashParser.VAR_REF: {
-        Tree ref = assertTree(tree.getChild(0), java_libbashParser.LETTER);
-        return context.bindings.get(ref.getText());
+        return _VAR_REF(tree, context);
       }
       case java_libbashParser.DIGIT: {
         return Integer.parseInt(tree.getText());
@@ -245,7 +250,20 @@ public class Script {
   }
 
   private Object _COMMAND(Tree tree, Context context) {
-    return execute(tree.getChild(0), context);
+    Tree child = tree.getChild(0);
+    switch (child.getType()) {
+      case java_libbashParser.STRING:
+        Object string = _STRING(child, context);
+        throw new UnsupportedOperationException("Implement me");
+      case java_libbashParser.VARIABLE_DEFINITIONS:
+        _VARIABLE_DEFINITIONS(child, context);
+        return null;
+      case java_libbashParser.WHILE:
+        _WHILE(child, context);
+        return null;
+      default:
+        throw unsupported(child);
+    }
   }
 
   private Object _LIST(Tree tree, Context context) {
@@ -253,7 +271,16 @@ public class Script {
     Object last = null;
     for (int index = 0; index < count;index++) {
       Tree child = tree.getChild(index);
-      last = execute(child, context);
+      switch (child.getType()) {
+        case java_libbashParser.COMMAND:
+          last = _COMMAND(child, context);
+          break;
+        case java_libbashParser.ARITHMETIC_EXPRESSION:
+          last = _ARITHMETIC_EXPRESSION(child, context);
+          break;
+        default:
+          throw unsupported(child);
+      }
     }
     return last;
   }

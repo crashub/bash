@@ -10,6 +10,16 @@ import org.crashub.bash.Script;
  */
 public class TestScript extends TestCase {
 
+  private Object eval(String s) throws RecognitionException {
+    return eval(new Context(), s);
+  }
+
+  private Object eval(Context context, String s) throws RecognitionException {
+    Script script = new Script("a=" + s);
+    script.execute(context);
+    return context.getBinding("a");
+  }
+
   public void testPipeline() throws Exception {
     System.out.println("Pipeline:");
     new Script("echo \"abc\" | less").prettyPrint();
@@ -27,6 +37,13 @@ public class TestScript extends TestCase {
         "   ;;\n" +
         "esac").prettyPrint();
   }
+
+/*
+  public void testFoo() throws Exception {
+    new Script("${foo?def}").prettyPrint();
+//    eval("${foo?def}\n");
+  }
+*/
 
   public void testVARIABLE_DEFINITIONS() throws Exception {
     Script script = new Script("i=3\n");
@@ -72,46 +89,33 @@ public class TestScript extends TestCase {
     assertEquals("1", eval("$((3>=2))\n"));
   }
 
-  private Object eval(String s) throws RecognitionException {
-    return new Script(s).execute();
-  }
-
   public void testARITHMETIC_EXPRESSION_PLUS() throws Exception {
-    Script script = new Script("$((2+3))\n");
-    Object i = script.execute();
-    assertEquals("5", i);
+    assertEquals("5", eval("$((2+3))\n"));
   }
 
   public void testARITHMETIC_EXPRESSION_MINUS() throws Exception {
-    Script script = new Script("$((3-2))\n");
-    Object i = script.execute();
-    assertEquals("1", i);
+    assertEquals("1", eval("$((3-2))\n"));
   }
 
   public void testARITHMETIC_EXPRESSION_TIMES() throws Exception {
-    Script script = new Script("$((3*2))\n");
-    Object i = script.execute();
-    assertEquals("6", i);
+    assertEquals("6", eval("$((3*2))\n"));
   }
 
   public void testARITHMETIC_EXPRESSION_SLASH() throws Exception {
-    Script script = new Script("$((4/2))\n");
-    Object i = script.execute();
-    assertEquals("2", i);
+    assertEquals("2", eval("$((4/2))\n"));
   }
 
   public void testSTRING() throws Exception {
-    Script script = new Script("2+3\n");
-    Object i = script.execute();
-    assertEquals("2+3", i);
+    assertEquals("2+3", eval("2+3\n"));
+//    assertEquals("def", eval(new Context().setBinding("abc", "def"), "$abc\n"));
   }
 
   public void testVAR_REF() throws Exception {
-    Script script = new Script("$((i))");
+    Script script = new Script("a=$((i))");
     Context context = new Context();
     context.setBinding("i", "3");
-    Object i = script.execute(context);
-    assertEquals("3", i);
+    script.execute(context);
+    assertEquals("3", context.getBinding("a"));
   }
 
   public void testWhile() throws Exception {

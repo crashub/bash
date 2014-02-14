@@ -160,6 +160,7 @@ public class Script {
     Tree child = tree.getChild(0);
     switch (child.getType()) {
       case java_libbashParser.LETTER:
+      case java_libbashParser.NAME:
         return context.bindings.get(child.getText());
       default:
         throw unsupported(child);

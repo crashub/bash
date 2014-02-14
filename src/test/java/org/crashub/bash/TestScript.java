@@ -107,7 +107,7 @@ public class TestScript extends TestCase {
 
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
-//    assertEquals("def", eval(new Context().setBinding("abc", "def"), "$abc\n"));
+    assertEquals("def", eval(new Context().setBinding("abc", "def"), "$abc\n"));
   }
 
   public void testVAR_REF() throws Exception {

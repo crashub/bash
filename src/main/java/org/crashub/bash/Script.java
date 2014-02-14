@@ -8,6 +8,7 @@ import org.gentoo.libbash.java_libbashLexer;
 import org.gentoo.libbash.java_libbashParser;
 
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -63,7 +64,12 @@ public class Script {
   }
 
   private UnsupportedOperationException unsupported(Tree tree) {
-    UnsupportedOperationException x = new UnsupportedOperationException("Tree " + constants.get(tree.getType()) + " not yet implemented");
+    StringWriter msg = new StringWriter();
+    msg.append("Tree ").append(constants.get(tree.getType())).append(" not yet implemented:\n");
+    PrintWriter writer = new PrintWriter(msg);
+    printTree(writer, "", tree);
+    writer.flush();
+    UnsupportedOperationException x = new UnsupportedOperationException(msg.toString());
     StackTraceElement[] t1 = x.getStackTrace();
     StackTraceElement[] t2 = new StackTraceElement[t1.length - 1];
     System.arraycopy(t1, 1, t2, 0, t2.length);
@@ -162,6 +168,7 @@ public class Script {
       case java_libbashParser.LETTER:
       case java_libbashParser.NAME:
         return context.bindings.get(child.getText());
+      case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
       default:
         throw unsupported(child);
     }

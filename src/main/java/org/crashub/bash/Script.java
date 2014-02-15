@@ -177,15 +177,15 @@ public class Script {
         String identifier = child.getChild(0).getText();
         if (context.bindings.containsKey(identifier)) {
           Object o = context.bindings.get(identifier);
-          if (child.getType() == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
-            if (o.toString().length() > 0) {
-              return o;
-            } else {
+          if (o.toString().length() > 0) {
+            return o;
+          } else {
+            if (child.getType() == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
               String s = _STRING(child.getChild(1), context).toString();
               throw new RuntimeException(s);
+            } else {
+              return o;
             }
-          } else {
-            return o;
           }
         } else {
           String s = _STRING(child.getChild(1), context).toString();

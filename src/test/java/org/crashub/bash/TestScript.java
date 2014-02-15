@@ -38,13 +38,6 @@ public class TestScript extends TestCase {
         "esac").prettyPrint();
   }
 
-/*
-  public void testFoo() throws Exception {
-    new Script("${foo?def}").prettyPrint();
-//    eval("${foo?def}\n");
-  }
-*/
-
   public void testVARIABLE_DEFINITIONS() throws Exception {
     Script script = new Script("i=3\n");
     Context context = new Context();
@@ -108,6 +101,9 @@ public class TestScript extends TestCase {
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
     assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc}"));
+  }
+
+  public void testDISPLAY_ERROR_WHEN_UNSET() throws Exception {
     assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc?does not exist}"));
     assertEquals("", eval(new Context().setBinding("abc", ""), "${abc?does not exist}"));
     try {
@@ -117,6 +113,9 @@ public class TestScript extends TestCase {
     catch (RuntimeException expected) {
       assertEquals("does not exist", expected.getMessage());
     }
+  }
+
+  public void testDISPLAY_ERROR_WHEN_UNSET_OR_NULL() throws Exception {
     assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc:?does not exist}"));
     try {
       eval(new Context().setBinding("abc", ""), "${abc:?does not exist}");
@@ -132,6 +131,18 @@ public class TestScript extends TestCase {
     catch (RuntimeException expected) {
       assertEquals("does not exist", expected.getMessage());
     }
+  }
+
+  public void testASSIGN_DEFAULT_WHEN_UNSET() throws Exception {
+    Context context1 = new Context();
+    assertEquals("ghi", eval(context1, "${abc=ghi}"));
+    assertEquals("ghi", context1.getBinding("abc"));
+    Context context2 = new Context().setBinding("abc", "def");
+    assertEquals("def", eval(context2, "${abc=ghi}"));
+    assertEquals("def", context2.getBinding("abc"));
+    Context context3 = new Context().setBinding("abc", "");
+    assertEquals("", eval(context3, "${abc=ghi}"));
+    assertEquals("", context3.getBinding("abc"));
   }
 
   public void testVAR_REF() throws Exception {

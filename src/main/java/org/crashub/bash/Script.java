@@ -172,20 +172,30 @@ public class Script {
         return context.bindings.get(child.getText());
       }
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL:
-      case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET: {
+      case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
+      case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET: {
         String identifier = child.getChild(0).getText();
         if (context.bindings.containsKey(identifier)) {
           Object o = context.bindings.get(identifier);
           if (child.getType() == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
             if (o.toString().length() > 0) {
               return o;
+            } else {
+              String s = _STRING(child.getChild(1), context).toString();
+              throw new RuntimeException(s);
             }
           } else {
             return o;
           }
+        } else {
+          String s = _STRING(child.getChild(1), context).toString();
+          if (child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET) {
+            context.bindings.put(identifier, s);
+            return s;
+          } else {
+            throw new RuntimeException(s);
+          }
         }
-        String message = _STRING(child.getChild(1), context).toString();
-        throw new RuntimeException(message);
       }
       default:
         throw unsupported(child);

@@ -174,6 +174,7 @@ public class Script {
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL:
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET:
+      case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL:
       case java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL: {
         String identifier = child.getChild(0).getText();
         if (context.bindings.containsKey(identifier)) {
@@ -187,13 +188,17 @@ public class Script {
             } else if (child.getType() == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
               String s = _STRING(child.getChild(1), context).toString();
               return s;
+            } else if (child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
+              String s = _STRING(child.getChild(1), context).toString();
+              context.bindings.put(identifier, s);
+              return s;
             } else {
               return o;
             }
           }
         } else {
           String s = _STRING(child.getChild(1), context).toString();
-          if (child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET) {
+          if (child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET || child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
             context.bindings.put(identifier, s);
             return s;
           } else if (child.getType() == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {

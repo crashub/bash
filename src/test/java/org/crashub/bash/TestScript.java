@@ -145,6 +145,18 @@ public class TestScript extends TestCase {
     assertEquals("", context3.getBinding("abc"));
   }
 
+  public void testUSE_DEFAULT_WHEN_UNSET_OR_NULL() throws Exception {
+    Context context1 = new Context();
+    assertEquals("ghi", eval(context1, "${abc:-ghi}"));
+    assertEquals(null, context1.getBinding("abc"));
+    Context context2 = new Context().setBinding("abc", "def");
+    assertEquals("def", eval(context2, "${abc:-ghi}"));
+    assertEquals("def", context2.getBinding("abc"));
+    Context context3 = new Context().setBinding("abc", "");
+    assertEquals("ghi", eval(context3, "${abc:-ghi}"));
+    assertEquals("", context3.getBinding("abc"));
+  }
+
   public void testVAR_REF() throws Exception {
     Script script = new Script("a=$((i))");
     Context context = new Context();

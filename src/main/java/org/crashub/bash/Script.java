@@ -240,6 +240,7 @@ public class Script {
         java_libbashParser.PLUS,
         java_libbashParser.TIMES,
         java_libbashParser.SLASH,
+        java_libbashParser.PCT,
         java_libbashParser.LESS_THAN,
         java_libbashParser.VAR_REF,
         java_libbashParser.LEQ,
@@ -257,6 +258,7 @@ public class Script {
       case java_libbashParser.MINUS:
       case java_libbashParser.TIMES:
       case java_libbashParser.SLASH:
+      case java_libbashParser.PCT:
       case java_libbashParser.LESS_THAN:
       case java_libbashParser.LEQ:
       case java_libbashParser.GEQ:
@@ -278,6 +280,8 @@ public class Script {
             return l * r;
           case java_libbashParser.SLASH:
             return l / r;
+          case java_libbashParser.PCT:
+            return l % r;
           case java_libbashParser.LESS_THAN:
             return l < r ? 1 : 0;
           case java_libbashParser.LEQ:

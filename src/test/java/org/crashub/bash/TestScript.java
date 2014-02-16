@@ -98,6 +98,10 @@ public class TestScript extends TestCase {
     assertEquals("2", eval("$((4/2))\n"));
   }
 
+  public void testARITHMETIC_EXPRESSION_PCT() throws Exception {
+    assertEquals("1", eval("$((5%2))\n"));
+  }
+
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
     assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc}"));

@@ -81,21 +81,13 @@ public class Script {
     return x;
   }
 
-  private Tree assertTree(Tree tree, int type) {
-    if (tree.getType() == type) {
-      return tree;
-    } else {
-      throw new UnsupportedOperationException("Was not expected tree " + constants.get(tree.getType()));
-    }
-  }
-
   private Tree assertTree(Tree tree, int... types) {
     for (int type : types) {
       if (tree.getType() == type) {
         return tree;
       }
     }
-    throw new UnsupportedOperationException("Was not expected tree " + constants.get(tree.getType()));
+    throw unsupported(tree);
   }
 
   private void _WHILE(Tree tree, Context context) {

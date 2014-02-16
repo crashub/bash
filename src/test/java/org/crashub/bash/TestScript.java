@@ -1,9 +1,14 @@
 package org.crashub.bash;
 
+import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 import org.antlr.runtime.RecognitionException;
 import org.crashub.bash.Context;
 import org.crashub.bash.Script;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Julien Viet
@@ -18,6 +23,39 @@ public class TestScript extends TestCase {
     Script script = new Script("a=" + s);
     script.execute(context);
     return context.getBinding("a");
+  }
+
+  public void testCommand() throws Exception {
+    final AtomicInteger count = new AtomicInteger();
+    Object ret = new Script("foo").execute(new Context(new CommandInvoker() {
+      @Override
+      public Object invoke(String command, List<String> parameters) {
+        if ("foo".equals(command) && parameters.isEmpty()) {
+          count.incrementAndGet();
+          return "foo_value";
+        } else {
+          throw new AssertionFailedError();
+        }
+      }
+    }));
+    assertEquals("foo_value", ret);
+  }
+
+  public void testCommandWithArgument() throws Exception {
+    final AtomicInteger count = new AtomicInteger();
+    new Script("foo bar").prettyPrint();
+    Object ret = new Script("foo bar").execute(new Context(new CommandInvoker() {
+      @Override
+      public Object invoke(String command, List<String> parameters) {
+        if ("foo".equals(command) && Arrays.asList("bar").equals(parameters)) {
+          count.incrementAndGet();
+          return "foo_value";
+        } else {
+          throw new AssertionFailedError();
+        }
+      }
+    }));
+    assertEquals("foo_value", ret);
   }
 
   public void testPipeline() throws Exception {

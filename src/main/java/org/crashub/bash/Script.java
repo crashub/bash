@@ -12,7 +12,11 @@ import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * @author Julien Viet
@@ -134,6 +138,7 @@ public class Script {
   }
 
   private Object _STRING(Tree tree, Context context) {
+    assertTree(tree, java_libbashParser.STRING);
     StringBuilder sb = new StringBuilder();
     for (int i = 0;i < tree.getChildCount();i++) {
       Tree child = tree.getChild(i);
@@ -372,8 +377,19 @@ public class Script {
     Tree child = tree.getChild(0);
     switch (child.getType()) {
       case java_libbashParser.STRING:
-        Object string = _STRING(child, context);
-        throw new UnsupportedOperationException("Implement me");
+        Object command = _STRING(child, context);
+        int childCount = tree.getChildCount();
+        List<String> parameters;
+        if (childCount > 1) {
+          parameters = new ArrayList<String>(childCount - 1);
+          for (int index = 1;index < childCount;index++) {
+            Object o = _STRING(tree.getChild(index), context);
+            parameters.add(o.toString());
+          }
+        } else {
+          parameters = Collections.emptyList();
+        }
+        return context.invoker.invoke(command.toString(), parameters);
       case java_libbashParser.VARIABLE_DEFINITIONS:
         _VARIABLE_DEFINITIONS(child, context);
         return null;

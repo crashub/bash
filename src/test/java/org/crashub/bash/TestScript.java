@@ -102,6 +102,42 @@ public class TestScript extends TestCase {
     assertEquals("1", eval("$((5%2))\n"));
   }
 
+  public void testARITHMETIC_EXPRESSION_PRE_INCR() throws Exception {
+    Context context1 = new Context().setBinding("x", "5");
+    assertEquals("6", eval(context1, "$((++x))\n"));
+    assertEquals(6, context1.getBinding("x"));
+    Context context2 = new Context();
+    assertEquals("1", eval(context2, "$((++x))\n"));
+    assertEquals(1, context2.getBinding("x"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_PRE_DECR() throws Exception {
+    Context context1 = new Context().setBinding("x", "5");
+    assertEquals("4", eval(context1, "$((--x))\n"));
+    assertEquals(4, context1.getBinding("x"));
+    Context context2 = new Context();
+    assertEquals("-1", eval(context2, "$((--x))\n"));
+    assertEquals(-1, context2.getBinding("x"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_POST_INCR() throws Exception {
+    Context context1 = new Context().setBinding("x", "5");
+    assertEquals("5", eval(context1, "$((x++))\n"));
+    assertEquals(6, context1.getBinding("x"));
+    Context context2 = new Context();
+    assertEquals("0", eval(context2, "$((x++))\n"));
+    assertEquals(1, context2.getBinding("x"));
+  }
+
+  public void testARITHMETIC_EXPRESSION_POST_DECR() throws Exception {
+    Context context1 = new Context().setBinding("x", "5");
+    assertEquals("5", eval(context1, "$((x--))\n"));
+    assertEquals(4, context1.getBinding("x"));
+    Context context2 = new Context();
+    assertEquals("0", eval(context2, "$((x--))\n"));
+    assertEquals(-1, context2.getBinding("x"));
+  }
+
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
     assertEquals("def", eval(new Context().setBinding("abc", "def"), "${abc}"));

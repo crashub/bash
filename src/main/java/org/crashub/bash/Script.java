@@ -241,6 +241,10 @@ public class Script {
         java_libbashParser.TIMES,
         java_libbashParser.SLASH,
         java_libbashParser.PCT,
+        java_libbashParser.PRE_INCR,
+        java_libbashParser.PRE_DECR,
+        java_libbashParser.POST_INCR,
+        java_libbashParser.POST_DECR,
         java_libbashParser.LESS_THAN,
         java_libbashParser.VAR_REF,
         java_libbashParser.LEQ,
@@ -296,6 +300,51 @@ public class Script {
             return l > r ? 1 : 0;
           default:
             throw new AssertionError();
+        }
+      }
+      case java_libbashParser.PRE_INCR:
+      case java_libbashParser.PRE_DECR:
+      case java_libbashParser.POST_INCR:
+      case java_libbashParser.POST_DECR: {
+        Tree exprTree = tree.getChild(0);
+        if (exprTree.getType() == java_libbashParser.VAR_REF) {
+          Tree ff = exprTree.getChild(0);
+          if (ff.getType() == java_libbashParser.LETTER || ff.getType() == java_libbashParser.NAME) {
+            String identifier = ff.getText();
+            Object o = context.bindings.get(identifier);
+            int val;
+            if (o == null) {
+              val = 0;
+            } else {
+              val = fooInt(o);
+            }
+            int next;
+            switch (tree.getType()) {
+              case java_libbashParser.PRE_INCR:
+                next = ++val;
+                break;
+              case java_libbashParser.PRE_DECR:
+                next = --val;
+                break;
+              case java_libbashParser.POST_INCR:
+                next = val + 1;
+                break;
+              case java_libbashParser.POST_DECR:
+                next = val - 1;
+                break;
+              default:
+                throw new AssertionError();
+            }
+            context.bindings.put(identifier, next);
+            return val;
+          } else {
+            // That should be enforced by the AST isn't it ?
+            // for instance $(( ${x}++ )) does not make sense to bash
+            // but it does in our case
+            throw unsupported(ff);
+          }
+        } else {
+          throw unsupported(tree);
         }
       }
       case java_libbashParser.VAR_REF: {

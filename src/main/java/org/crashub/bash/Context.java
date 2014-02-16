@@ -4,26 +4,13 @@ import java.util.HashMap;
 import java.util.List;
 
 /**
+ * The context of execution.
+ *
  * @author Julien Viet
  */
-public class Context {
+public abstract class Context {
 
   final HashMap<String, Object> bindings = new HashMap<String, Object>();
-
-  final CommandInvoker invoker;
-
-  public Context() {
-    this(new CommandInvoker() {
-      @Override
-      public Object invoke(String command, List<String> parameters) {
-        throw new UnsupportedOperationException("Cannot invoke command " + command);
-      }
-    });
-  }
-
-  public Context(CommandInvoker invoker) {
-    this.invoker = invoker;
-  }
 
   public Object getBinding(String name) {
     return bindings.get(name);
@@ -37,6 +24,23 @@ public class Context {
     }
     return this;
   }
+
+  /**
+   * Create a process for the command.
+   *
+   * @param command the command name to execute
+   * @param parameters the command parameters
+   * @return the command process
+   */
+  protected abstract Process createCommand(String command, List<String> parameters);
+
+  /**
+   * Execute a process pipeline.
+   *
+   * @param pipeline the pipeline
+   * @return the pipeline result
+   */
+  protected abstract Object execute(Process[] pipeline);
 
   @Override
   public String toString() {

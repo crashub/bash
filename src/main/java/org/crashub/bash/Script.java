@@ -13,7 +13,6 @@ import java.io.Writer;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -54,10 +53,6 @@ public class Script {
     tree = (Tree)parser(s).start().getTree();
   }
 
-  public Object execute() {
-    return execute(new Context());
-  }
-
   public Object execute(Context context) {
     switch (tree.getType()) {
       case java_libbashParser.LIST:
@@ -90,40 +85,60 @@ public class Script {
     throw unsupported(tree);
   }
 
-  private void _WHILE(Tree tree, Context context) {
-    Tree condition = assertTree(
-        tree.getChild(0),
-        java_libbashParser.LIST).getChild(0);
-    while (true) {
-      Object value = _LIST(condition, context);
-      if (value instanceof Integer) {
-        int v = (Integer)value;
-        if (v == 0) {
-          break;
-        } else {
-          Tree body = tree.getChild(1);
-          switch (body.getType()) {
-            case java_libbashParser.LIST:
-              _LIST(body, context);
-              break;
-            default:
-              throw unsupported(body);
+  private Block _WHILE(final Tree tree, Context context) {
+    final Tree condition = assertTree(tree.getChild(0), java_libbashParser.LIST).getChild(0);
+    return new Block() {
+      @Override
+      public Process createProcess(final Context context) {
+        return new Process() {
+          @Override
+          public Object execute(ReadStream standardInput, WriteStream standardOutput) {
+            while (true) {
+              Object value = _LIST(condition, context);
+              if (value instanceof Integer) {
+                int v = (Integer)value;
+                if (v == 0) {
+                  break;
+                } else {
+                  Tree body = tree.getChild(1);
+                  switch (body.getType()) {
+                    case java_libbashParser.LIST:
+                      _LIST(body, context);
+                      break;
+                    default:
+                      throw unsupported(body);
+                  }
+                }
+              } else {
+                throw new UnsupportedOperationException("Not implemented");
+              }
+            }
+            return null;
           }
-        }
-      } else {
-        throw new UnsupportedOperationException("Not implemented");
+        };
       }
-    }
+    };
   }
 
-  private void _VARIABLE_DEFINITIONS(Tree tree, Context context) {
+  private Block _VARIABLE_DEFINITIONS(Tree tree, Context context) {
     Tree child = tree.getChild(0);
     if (child.getType() == java_libbashParser.EQUALS) {
-      Tree lhs = assertTree(child.getChild(0), java_libbashParser.LETTER);
-      Tree rhs = assertTree(child.getChild(1), java_libbashParser.STRING);
-      String name = lhs.getText();
-      Object value = _STRING(rhs, context);
-      context.bindings.put(name, value);
+      final Tree lhs = assertTree(child.getChild(0), java_libbashParser.LETTER);
+      final Tree rhs = assertTree(child.getChild(1), java_libbashParser.STRING);
+      return new Block() {
+        @Override
+        public Process createProcess(final Context context) {
+          return new Process() {
+            @Override
+            public Object execute(ReadStream standardInput, WriteStream standardOutput) {
+              String name = lhs.getText();
+              Object value = _STRING(rhs, context);
+              context.bindings.put(name, value);
+              return null;
+            }
+          };
+        }
+      };
     } else {
       throw unsupported(tree);
     }
@@ -365,7 +380,7 @@ public class Script {
     }
   }
 
-  private Object _COMMAND(Tree tree, Context context) {
+  private Block _COMMAND(Tree tree, Context context) {
     Tree child = tree.getChild(0);
     switch (child.getType()) {
       case java_libbashParser.STRING:
@@ -381,13 +396,11 @@ public class Script {
         } else {
           parameters = Collections.emptyList();
         }
-        return context.invoker.invoke(command.toString(), parameters);
+        return new Command(command.toString(), parameters);
       case java_libbashParser.VARIABLE_DEFINITIONS:
-        _VARIABLE_DEFINITIONS(child, context);
-        return null;
+        return _VARIABLE_DEFINITIONS(child, context);
       case java_libbashParser.WHILE:
-        _WHILE(child, context);
-        return null;
+        return _WHILE(child, context);
       default:
         throw unsupported(child);
     }
@@ -400,11 +413,22 @@ public class Script {
       Tree child = tree.getChild(index);
       switch (child.getType()) {
         case java_libbashParser.COMMAND:
-          last = _COMMAND(child, context);
+          Block block = _COMMAND(child, context);
+          last = context.execute(new Process[]{block.createProcess(context)});
           break;
         case java_libbashParser.ARITHMETIC_EXPRESSION:
           last = _ARITHMETIC_EXPRESSION(child, context);
           break;
+        case java_libbashParser.PIPE: {
+          Process[] pipeline = new Process[child.getChildCount()];
+          for (int c = 0;c < child.getChildCount();c++) {
+            Tree pipeComponent = child.getChild(c);
+            assertTree(pipeComponent, java_libbashParser.COMMAND);
+            pipeline[c] = _COMMAND(child.getChild(c), context).createProcess(context);
+          }
+          last  = context.execute(pipeline);
+          break;
+        }
         default:
           throw unsupported(child);
       }

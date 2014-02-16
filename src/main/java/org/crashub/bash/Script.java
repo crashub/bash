@@ -164,9 +164,14 @@ public class Script {
     return sb.toString();
   }
 
+  private static final int ACTION_DISPLAY = 0;
+  private static final int ACTION_USE = 1;
+  private static final int ACTION_ASSIGN = 2;
+
   private Object _VAR_REF(Tree tree, Context context) {
     Tree child = tree.getChild(0);
-    switch (child.getType()) {
+    int childType = child.getType();
+    switch (childType) {
       case java_libbashParser.LETTER:
       case java_libbashParser.NAME: {
         return context.bindings.get(child.getText());
@@ -176,36 +181,50 @@ public class Script {
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET:
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL:
       case java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL: {
+
+        int action;
         String identifier = child.getChild(0).getText();
         if (context.bindings.containsKey(identifier)) {
           Object o = context.bindings.get(identifier);
           if (o.toString().length() > 0) {
             return o;
           } else {
-            if (child.getType() == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
-              String s = _STRING(child.getChild(1), context).toString();
-              throw new RuntimeException(s);
-            } else if (child.getType() == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
-              String s = _STRING(child.getChild(1), context).toString();
-              return s;
-            } else if (child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
-              String s = _STRING(child.getChild(1), context).toString();
-              context.bindings.put(identifier, s);
-              return s;
+            if (childType == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
+              action = ACTION_DISPLAY;
+            } else if (childType == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
+              action = ACTION_USE;
+            } else if (childType == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
+              action = ACTION_ASSIGN;
             } else {
               return o;
             }
           }
         } else {
-          String s = _STRING(child.getChild(1), context).toString();
-          if (child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET || child.getType() == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
-            context.bindings.put(identifier, s);
-            return s;
-          } else if (child.getType() == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
-            return s;
+          if (childType == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET || childType == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
+            action = ACTION_ASSIGN;
+          } else if (childType == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
+            action = ACTION_USE;
           }else {
+            action = ACTION_DISPLAY;
+          }
+        }
+
+        //
+        switch (action) {
+          case ACTION_DISPLAY: {
+            String s = _STRING(child.getChild(1), context).toString();
             throw new RuntimeException(s);
           }
+          case ACTION_USE: {
+            return _STRING(child.getChild(1), context).toString();
+          }
+          case ACTION_ASSIGN: {
+            String s = _STRING(child.getChild(1), context).toString();
+            context.bindings.put(identifier, s);
+            return s;
+          }
+          default:
+            throw new AssertionError();
         }
       }
       default:

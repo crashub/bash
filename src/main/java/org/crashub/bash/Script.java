@@ -85,55 +85,104 @@ public class Script {
     throw unsupported(tree);
   }
 
-  private Block _WHILE(final Tree tree, Context context) {
-    final Tree condition = assertTree(tree.getChild(0), java_libbashParser.LIST).getChild(0);
-    return new Block() {
-      @Override
-      public Process createProcess(final Context context) {
-        return new Process() {
-          @Override
-          public Object execute(ReadStream standardInput, WriteStream standardOutput) {
-            while (true) {
-              Object value = _LIST(condition, context);
-              if (value instanceof Integer) {
-                int v = (Integer)value;
-                if (v == 0) {
-                  break;
-                } else {
-                  Tree body = tree.getChild(1);
-                  switch (body.getType()) {
-                    case java_libbashParser.LIST:
-                      _LIST(body, context);
-                      break;
-                    default:
-                      throw unsupported(body);
-                  }
-                }
+  // Base class for loops
+  private abstract class Loop extends Block {
+    final Context context;
+    final Tree body;
+    protected Loop(Context context, Tree body) {
+      this.context = context;
+      this.body = body;
+    }
+    protected abstract Object test();
+    @Override
+    public Process createProcess(final Context context) {
+      return new Process() {
+        @Override
+        public Object execute(ReadStream standardInput, WriteStream standardOutput) {
+          while  (true) {
+            Object value = test();
+            if (value instanceof Integer) {
+              int v = (Integer) value;
+              if (v == 0) {
+                break;
               } else {
-                throw new UnsupportedOperationException("Not implemented");
+                switch (body.getType()) {
+                  case java_libbashParser.LIST:
+                    _LIST(body, context);
+                    break;
+                  default:
+                    throw unsupported(body);
+                }
               }
             }
-            return null;
           }
-        };
+          return null;
+        }
+      };
+    }
+  }
+
+  private Block _CFOR(final Tree tree, Context context) {
+    final Tree init = assertTree(tree.getChild(0), java_libbashParser.FOR_INIT);
+    final Tree cond = assertTree(tree.getChild(1), java_libbashParser.FOR_COND);
+    final Tree body = assertTree(tree.getChild(2), java_libbashParser.LIST);
+    final Tree mod = assertTree(tree.getChild(3), java_libbashParser.FOR_MOD);
+    return new Loop(context, body) {
+      boolean initialized;
+      @Override
+      protected Object test() {
+        if (!initialized) {
+          _ARITHMETIC(mod.getChild(0), context);
+        } else {
+          _ARITHMETIC(assertTree(init.getChild(0), java_libbashParser.ARITHMETIC), context);
+        }
+        return _ARITHMETIC(cond.getChild(0), context);
       }
     };
   }
 
+  private Block _WHILE(final Tree tree, Context context) {
+    final Tree condition = assertTree(tree.getChild(0), java_libbashParser.LIST).getChild(0);
+    final Tree body = tree.getChild(1);
+    return new Loop(context, body) {
+      @Override
+      protected Object test() {
+        return _LIST(condition, context);
+      }
+    };
+  }
+
+  private Object _EQUALS(Tree tree, Context context) {
+    Tree lhs = assertTree(tree.getChild(0), java_libbashParser.LETTER);
+    String name = lhs.getText();
+    Tree rhs = tree.getChild(1);
+    Object value;
+    switch (rhs.getType()) {
+      case java_libbashParser.STRING: {
+        value = _STRING(rhs, context);
+        break;
+      }
+      case java_libbashParser.DIGIT: {
+        value = evalExpression(rhs, context);
+        break;
+      }
+      default:
+        throw unsupported(rhs);
+    }
+    context.bindings.put(name, value);
+    return value;
+  }
+
   private Block _VARIABLE_DEFINITIONS(Tree tree, Context context) {
-    Tree child = tree.getChild(0);
+    final Tree child = tree.getChild(0);
     if (child.getType() == java_libbashParser.EQUALS) {
-      final Tree lhs = assertTree(child.getChild(0), java_libbashParser.LETTER);
-      final Tree rhs = assertTree(child.getChild(1), java_libbashParser.STRING);
       return new Block() {
         @Override
         public Process createProcess(final Context context) {
           return new Process() {
             @Override
             public Object execute(ReadStream standardInput, WriteStream standardOutput) {
-              String name = lhs.getText();
-              Object value = _STRING(rhs, context);
-              context.bindings.put(name, value);
+              _EQUALS(child, context);
               return null;
             }
           };
@@ -246,8 +295,13 @@ public class Script {
 
   private Object _ARITHMETIC_EXPRESSION(Tree tree, Context context) {
     Tree arithmetic = assertTree(tree.getChild(0), java_libbashParser.ARITHMETIC);
+    return _ARITHMETIC(arithmetic, context);
+  }
+
+  private Object _ARITHMETIC(Tree tree, Context context) {
+    assertTree(tree, java_libbashParser.ARITHMETIC);
     Tree expression = assertTree(
-        arithmetic.getChild(0),
+        tree.getChild(0),
         java_libbashParser.MINUS,
         java_libbashParser.PLUS,
         java_libbashParser.TIMES,
@@ -264,7 +318,8 @@ public class Script {
         java_libbashParser.EQUALS_TO,
         java_libbashParser.NOT_EQUALS,
         java_libbashParser.GREATER_THAN,
-        java_libbashParser.DIGIT);
+        java_libbashParser.DIGIT,
+        java_libbashParser.EQUALS);
     return evalExpression(expression, context);
   }
 
@@ -362,8 +417,12 @@ public class Script {
       case java_libbashParser.VAR_REF: {
         return _VAR_REF(tree, context);
       }
+      case java_libbashParser.NUMBER:
       case java_libbashParser.DIGIT: {
         return Integer.parseInt(tree.getText());
+      }
+      case java_libbashParser.EQUALS: {
+        return _EQUALS(tree, context);
       }
       default:
         throw unsupported(tree);
@@ -401,6 +460,8 @@ public class Script {
         return _VARIABLE_DEFINITIONS(child, context);
       case java_libbashParser.WHILE:
         return _WHILE(child, context);
+      case java_libbashParser.CFOR:
+        return _CFOR(child, context);
       default:
         throw unsupported(child);
     }

@@ -278,17 +278,28 @@ public class TestScript extends TestCase {
   }
 
   public void testWhile() throws Exception {
-    System.out.println("While:");
     Script script = new Script(
         "i=0\n" +
         "while (( $i <= 5 ))\n" +
         "do\n" +
-        "   i=$((i+1))\n" +
+        "i=$((i+1))\n" +
         "done");
-    script.prettyPrint();
     Context context = new TestableContext();
     script.execute(context);
     Object i = context.getBinding("i");
     assertEquals("6", i);
+  }
+
+  public void testCFOR() throws Exception {
+    Script script = new Script(
+        "j=0\n" +
+        "for((i=1;i<=5;i++))\n" +
+        "do\n" +
+        "j=$((i))\n" +
+        "done");
+    Context context = new TestableContext();
+    script.execute(context);
+    Object j = context.getBinding("j");
+    assertEquals("5", j);
   }
 }

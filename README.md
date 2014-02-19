@@ -18,6 +18,21 @@ Interactive repl can trivially be started:
     4
     > echo $((a + 4))
     8
+    > for((i=1;i<=20;i++)); do echo $i;done | grep 1
+    1
+    10
+    11
+    12
+    13
+    14
+    15
+    16
+    17
+    18
+    19
+    > echo $i
+    21
+    >
 
 Anything that does not work provide the abstract syntax tree portion not implemented:
 

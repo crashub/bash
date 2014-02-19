@@ -7,6 +7,7 @@ import org.crashub.bash.spi.Context;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,9 +31,9 @@ public class TestScript extends TestCase {
 
   public void testCommand() throws Exception {
     final AtomicInteger count = new AtomicInteger();
-    Object ret = new Script("foo").execute(new TestableContext() {
+    Object ret = new Script("foo").execute(new TestableContext(new BaseContext.CommandResolver() {
       @Override
-      protected Callable<?> createCommand(String command, List<String> parameters, InputStream in, OutputStream out) {
+      public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if ("foo".equals(command) && parameters.isEmpty()) {
           return new Callable<Object>() {
             @Override
@@ -45,15 +46,15 @@ public class TestScript extends TestCase {
           return null;
         }
       }
-    });
+    }));
     assertEquals("foo_value", ret);
   }
 
   public void testCommandWithArgument() throws Exception {
     final AtomicInteger count = new AtomicInteger();
-    Object ret = new Script("foo bar").execute(new TestableContext() {
+    Object ret = new Script("foo bar").execute(new TestableContext(new BaseContext.CommandResolver() {
       @Override
-      protected Callable<?> createCommand(String command, List<String> parameters, InputStream in, OutputStream out) {
+      public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if ("foo".equals(command) && Arrays.asList("bar").equals(parameters)) {
           return new Callable<Object>() {
             @Override
@@ -66,15 +67,15 @@ public class TestScript extends TestCase {
           return null;
         }
       }
-    });
+    }));
     assertEquals("foo_value", ret);
   }
 
   public void testPipeline() throws Exception {
     final ArrayList<String> list = new ArrayList<String>();
-    new Script("foo | bar").execute(new TestableContext() {
+    new Script("foo | bar").execute(new TestableContext(new BaseContext.CommandResolver() {
       @Override
-      protected Callable<?> createCommand(final String command, List<String> parameters, InputStream in, OutputStream out) {
+      public Callable<?> resolveCommand(final String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         return new Callable<Object>() {
           @Override
           public Object call() throws Exception {
@@ -83,7 +84,7 @@ public class TestScript extends TestCase {
           }
         };
       }
-    });
+    }));
     assertEquals(Arrays.asList("foo", "bar"), list);
   }
 
@@ -305,5 +306,35 @@ public class TestScript extends TestCase {
     script.execute(context);
     assertEquals("5", context.getBinding("j"));
     assertEquals(6, context.getBinding("i"));
+  }
+
+  public void testNesting() throws Exception {
+    Script script = new Script(
+        "for((i=1;i<=5;i++))\n" +
+        "do\n" +
+        "echo $i\n" +
+        "done");
+    TestableContext context = new TestableContext(new BaseContext.CommandResolver() {
+      @Override
+      public Callable<?> resolveCommand(String command, final List<String> parameters, InputStream standardInput, final OutputStream standardOutput) {
+        if ("echo".equals(command)) {
+          return new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+              PrintWriter writer = new PrintWriter(standardOutput, true);
+              for (String parameter : parameters) {
+                writer.print(parameter);
+              }
+              writer.flush();
+              return null;
+            }
+          };
+        } else {
+          return null;
+        }
+      }
+    });
+    script.execute(context);
+    assertEquals("12345", context.getStandardOutput());
   }
 }

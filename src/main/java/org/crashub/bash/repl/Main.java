@@ -31,11 +31,10 @@ public class Main {
     PrintStream err = System.err;
     FileInputStream in = new FileInputStream(FileDescriptor.in);
     ConsoleReader reader = new ConsoleReader(null, in, out, term);
-    Context context = new BaseContext(System.out) {
-
+    Context context = new BaseContext(new BaseContext.CommandResolver() {
       @Override
-      protected Callable<?> createCommand(String command, final List<String> parameters, final InputStream in, final OutputStream out) {
-        final PrintWriter writer = new PrintWriter(out, true);
+      public Callable<?> resolveCommand(String command, final List<String> parameters, final InputStream standardInput, OutputStream standardOutput) {
+        final PrintWriter writer = new PrintWriter(standardOutput, true);
         if ("echo".equals(command)) {
           return new Callable<Object>() {
             @Override
@@ -51,7 +50,7 @@ public class Main {
           return new Callable<Object>() {
             @Override
             public Object call() throws Exception {
-              Scanner scanner = new Scanner(in);
+              Scanner scanner = new Scanner(standardInput);
               while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (pattern.matcher(line).find()) {
@@ -65,7 +64,7 @@ public class Main {
           return null;
         }
       }
-    };
+    }, System.out);
     while (true) {
       String s = reader.readLine("> ");
       Script script = new Script(s);

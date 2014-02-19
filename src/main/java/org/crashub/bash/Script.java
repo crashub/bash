@@ -95,14 +95,16 @@ public class Script {
       this.context = context;
       this.body = body;
     }
-    protected abstract Object test();
+    protected abstract Object test(boolean initialize);
     @Override
     public org.crashub.bash.spi.Process createProcess(final Context context) {
       return new Process() {
         @Override
         public Object execute(Context context) {
+          boolean initialize = true;
           while  (true) {
-            Object value = test();
+            Object value = test(initialize);
+            initialize = false;
             if (value instanceof Integer) {
               int v = (Integer) value;
               if (v == 0) {
@@ -130,13 +132,12 @@ public class Script {
     final Tree body = assertTree(tree.getChild(2), java_libbashParser.LIST);
     final Tree mod = assertTree(tree.getChild(3), java_libbashParser.FOR_MOD);
     return new Loop(context, body) {
-      boolean initialized;
       @Override
-      protected Object test() {
-        if (!initialized) {
-          _ARITHMETIC(mod.getChild(0), context);
-        } else {
+      protected Object test(boolean initialize) {
+        if (initialize) {
           _ARITHMETIC(assertTree(init.getChild(0), java_libbashParser.ARITHMETIC), context);
+        } else {
+          _ARITHMETIC(mod.getChild(0), context);
         }
         return _ARITHMETIC(cond.getChild(0), context);
       }
@@ -148,7 +149,7 @@ public class Script {
     final Tree body = tree.getChild(1);
     return new Loop(context, body) {
       @Override
-      protected Object test() {
+      protected Object test(boolean initialize) {
         return _LIST(condition, context);
       }
     };

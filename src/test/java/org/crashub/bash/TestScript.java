@@ -294,14 +294,16 @@ public class TestScript extends TestCase {
 
   public void testCFOR() throws Exception {
     Script script = new Script(
-        "j=0\n" +
         "for((i=1;i<=5;i++))\n" +
         "do\n" +
         "j=$((i))\n" +
         "done");
     Context context = new TestableContext();
     script.execute(context);
-    Object j = context.getBinding("j");
-    assertEquals("5", j);
+    assertEquals("5", context.getBinding("j"));
+    assertEquals(6, context.getBinding("i"));
+    script.execute(context);
+    assertEquals("5", context.getBinding("j"));
+    assertEquals(6, context.getBinding("i"));
   }
 }

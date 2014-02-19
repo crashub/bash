@@ -4,7 +4,7 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.Tree;
-import org.crashub.bash.spi.*;
+import org.crashub.bash.spi.Context;
 import org.crashub.bash.spi.Process;
 import org.gentoo.libbash.java_libbashLexer;
 import org.gentoo.libbash.java_libbashParser;

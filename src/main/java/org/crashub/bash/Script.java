@@ -4,6 +4,8 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.Tree;
+import org.crashub.bash.spi.*;
+import org.crashub.bash.spi.Process;
 import org.gentoo.libbash.java_libbashLexer;
 import org.gentoo.libbash.java_libbashParser;
 
@@ -95,7 +97,7 @@ public class Script {
     }
     protected abstract Object test();
     @Override
-    public Process createProcess(final Context context) {
+    public org.crashub.bash.spi.Process createProcess(final Context context) {
       return new Process() {
         @Override
         public Object execute(ReadStream standardInput, WriteStream standardOutput) {
@@ -169,7 +171,7 @@ public class Script {
       default:
         throw unsupported(rhs);
     }
-    context.bindings.put(name, value);
+    context.setBinding(name, value);
     return value;
   }
 
@@ -235,7 +237,7 @@ public class Script {
     switch (childType) {
       case java_libbashParser.LETTER:
       case java_libbashParser.NAME: {
-        return context.bindings.get(child.getText());
+        return context.getBinding(child.getText());
       }
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL:
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
@@ -245,8 +247,8 @@ public class Script {
 
         int action;
         String identifier = child.getChild(0).getText();
-        if (context.bindings.containsKey(identifier)) {
-          Object o = context.bindings.get(identifier);
+        Object o = context.getBinding(identifier);
+        if (o != null) {
           if (o.toString().length() > 0) {
             return o;
           } else {
@@ -281,7 +283,7 @@ public class Script {
           }
           case ACTION_ASSIGN: {
             String s = _STRING(child.getChild(1), context).toString();
-            context.bindings.put(identifier, s);
+            context.setBinding(identifier, s);
             return s;
           }
           default:
@@ -378,7 +380,7 @@ public class Script {
           Tree ff = exprTree.getChild(0);
           if (ff.getType() == java_libbashParser.LETTER || ff.getType() == java_libbashParser.NAME) {
             String identifier = ff.getText();
-            Object o = context.bindings.get(identifier);
+            Object o = context.getBinding(identifier);
             int val;
             if (o == null) {
               val = 0;
@@ -402,7 +404,7 @@ public class Script {
               default:
                 throw new AssertionError();
             }
-            context.bindings.put(identifier, next);
+            context.setBinding(identifier, next);
             return val;
           } else {
             // That should be enforced by the AST isn't it ?

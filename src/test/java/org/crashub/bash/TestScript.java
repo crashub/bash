@@ -2,6 +2,8 @@ package org.crashub.bash;
 
 import junit.framework.TestCase;
 import org.antlr.runtime.RecognitionException;
+import org.crashub.bash.spi.BaseContext;
+import org.crashub.bash.spi.Context;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -163,7 +165,7 @@ public class TestScript extends TestCase {
   }
 
   public void testARITHMETIC_EXPRESSION_PRE_INCR() throws Exception {
-    Context context1 = new TestableContext().setBinding("x", "5");
+    Context context1 = new TestableContext().bind("x", "5");
     assertEquals("6", eval(context1, "$((++x))\n"));
     assertEquals(6, context1.getBinding("x"));
     Context context2 = new TestableContext();
@@ -172,7 +174,7 @@ public class TestScript extends TestCase {
   }
 
   public void testARITHMETIC_EXPRESSION_PRE_DECR() throws Exception {
-    Context context1 = new TestableContext().setBinding("x", "5");
+    Context context1 = new TestableContext().bind("x", "5");
     assertEquals("4", eval(context1, "$((--x))\n"));
     assertEquals(4, context1.getBinding("x"));
     Context context2 = new TestableContext();
@@ -181,7 +183,7 @@ public class TestScript extends TestCase {
   }
 
   public void testARITHMETIC_EXPRESSION_POST_INCR() throws Exception {
-    Context context1 = new TestableContext().setBinding("x", "5");
+    Context context1 = new TestableContext().bind("x", "5");
     assertEquals("5", eval(context1, "$((x++))\n"));
     assertEquals(6, context1.getBinding("x"));
     Context context2 = new TestableContext();
@@ -190,7 +192,7 @@ public class TestScript extends TestCase {
   }
 
   public void testARITHMETIC_EXPRESSION_POST_DECR() throws Exception {
-    Context context1 = new TestableContext().setBinding("x", "5");
+    Context context1 = new TestableContext().bind("x", "5");
     assertEquals("5", eval(context1, "$((x--))\n"));
     assertEquals(4, context1.getBinding("x"));
     Context context2 = new TestableContext();
@@ -200,12 +202,12 @@ public class TestScript extends TestCase {
 
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
-    assertEquals("def", eval(new TestableContext().setBinding("abc", "def"), "${abc}"));
+    assertEquals("def", eval(new TestableContext().bind("abc", "def"), "${abc}"));
   }
 
   public void testDISPLAY_ERROR_WHEN_UNSET() throws Exception {
-    assertEquals("def", eval(new TestableContext().setBinding("abc", "def"), "${abc?does not exist}"));
-    assertEquals("", eval(new TestableContext().setBinding("abc", ""), "${abc?does not exist}"));
+    assertEquals("def", eval(new TestableContext().bind("abc", "def"), "${abc?does not exist}"));
+    assertEquals("", eval(new TestableContext().bind("abc", ""), "${abc?does not exist}"));
     try {
       eval("${abc?does not exist}");
       fail();
@@ -216,9 +218,9 @@ public class TestScript extends TestCase {
   }
 
   public void testDISPLAY_ERROR_WHEN_UNSET_OR_NULL() throws Exception {
-    assertEquals("def", eval(new TestableContext().setBinding("abc", "def"), "${abc:?does not exist}"));
+    assertEquals("def", eval(new TestableContext().bind("abc", "def"), "${abc:?does not exist}"));
     try {
-      eval(new TestableContext().setBinding("abc", ""), "${abc:?does not exist}");
+      eval(new TestableContext().bind("abc", ""), "${abc:?does not exist}");
       fail();
     }
     catch (RuntimeException expected) {
@@ -237,10 +239,10 @@ public class TestScript extends TestCase {
     Context context1 = new TestableContext();
     assertEquals("ghi", eval(context1, "${abc=ghi}"));
     assertEquals("ghi", context1.getBinding("abc"));
-    Context context2 = new TestableContext().setBinding("abc", "def");
+    Context context2 = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context2, "${abc=ghi}"));
     assertEquals("def", context2.getBinding("abc"));
-    Context context3 = new TestableContext().setBinding("abc", "");
+    Context context3 = new TestableContext().bind("abc", "");
     assertEquals("", eval(context3, "${abc=ghi}"));
     assertEquals("", context3.getBinding("abc"));
   }
@@ -249,10 +251,10 @@ public class TestScript extends TestCase {
     Context context1 = new TestableContext();
     assertEquals("ghi", eval(context1, "${abc:-ghi}"));
     assertEquals(null, context1.getBinding("abc"));
-    Context context2 = new TestableContext().setBinding("abc", "def");
+    Context context2 = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context2, "${abc:-ghi}"));
     assertEquals("def", context2.getBinding("abc"));
-    Context context3 = new TestableContext().setBinding("abc", "");
+    Context context3 = new TestableContext().bind("abc", "");
     assertEquals("ghi", eval(context3, "${abc:-ghi}"));
     assertEquals("", context3.getBinding("abc"));
   }
@@ -261,18 +263,18 @@ public class TestScript extends TestCase {
     Context context1 = new TestableContext();
     assertEquals("ghi", eval(context1, "${abc:=ghi}"));
     assertEquals("ghi", context1.getBinding("abc"));
-    Context context2 = new TestableContext().setBinding("abc", "def");
+    Context context2 = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context2, "${abc:=ghi}"));
     assertEquals("def", context2.getBinding("abc"));
-    Context context3 = new TestableContext().setBinding("abc", "");
+    Context context3 = new TestableContext().bind("abc", "");
     assertEquals("ghi", eval(context3, "${abc:=ghi}"));
     assertEquals("ghi", context3.getBinding("abc"));
   }
 
   public void testVAR_REF() throws Exception {
     Script script = new Script("a=$((i))");
-    Context context = new TestableContext();
-    context.setBinding("i", "3");
+    BaseContext context = new TestableContext();
+    context.bind("i", "3");
     script.execute(context);
     assertEquals("3", context.getBinding("a"));
   }

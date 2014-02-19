@@ -3,6 +3,8 @@ package org.crashub.bash;
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
+import org.crashub.bash.spi.BaseContext;
+import org.crashub.bash.spi.Context;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;

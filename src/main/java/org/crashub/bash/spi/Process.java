@@ -1,4 +1,4 @@
-package org.crashub.bash;
+package org.crashub.bash.spi;
 
 /**
  * A process.

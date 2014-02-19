@@ -1,6 +1,10 @@
 package org.crashub.bash;
 
+import org.crashub.bash.spi.*;
+
 /**
+ * A block provides code to be executed in a context managed by the runtime.
+ *
  * @author Julien Viet
  */
 public abstract class Block {
@@ -11,6 +15,6 @@ public abstract class Block {
    * @param context the context of execution
    * @return the process
    */
-  public abstract Process createProcess(Context context);
+  public abstract org.crashub.bash.spi.Process createProcess(Context context);
 
 }

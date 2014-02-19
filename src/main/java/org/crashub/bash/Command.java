@@ -1,5 +1,7 @@
 package org.crashub.bash;
 
+import org.crashub.bash.spi.*;
+
 import java.util.List;
 
 /**
@@ -18,7 +20,7 @@ public class Command extends Block {
   }
 
   @Override
-  public Process createProcess(Context context) {
+  public org.crashub.bash.spi.Process createProcess(Context context) {
     return context.createCommand(name, parameters);
   }
 }

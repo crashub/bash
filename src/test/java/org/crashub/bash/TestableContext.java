@@ -1,5 +1,7 @@
 package org.crashub.bash;
 
+import org.crashub.bash.spi.BaseContext;
+
 import java.io.ByteArrayOutputStream;
 
 /**

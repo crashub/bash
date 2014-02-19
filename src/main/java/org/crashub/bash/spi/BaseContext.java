@@ -1,4 +1,4 @@
-package org.crashub.bash;
+package org.crashub.bash.spi;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -6,19 +6,41 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 /**
  * @author Julien Viet
  */
-public class BaseContext extends Context {
+public class BaseContext implements Context {
+
+  /** . */
+  final HashMap<String, Object> bindings = new HashMap<String, Object>();
 
   /** . */
   protected final OutputStream out;
 
   public BaseContext(OutputStream out) {
     this.out = out;
+  }
+
+  // Fluent method
+  public BaseContext bind(String name, Object value) {
+    setBinding(name, value);
+    return this;
+  }
+
+  public Object getBinding(String name) {
+    return bindings.get(name);
+  }
+
+  public void setBinding(String name, Object value) {
+    if (value != null) {
+      bindings.put(name, value);
+    } else {
+      bindings.remove(name);
+    }
   }
 
   protected Callable<?> createCommand(
@@ -30,7 +52,7 @@ public class BaseContext extends Context {
   }
 
   @Override
-  public final Process createCommand(final String command, final List<String> parameters) {
+  public final org.crashub.bash.spi.Process createCommand(final String command, final List<String> parameters) {
     return new Process() {
       @Override
       public Object execute(ReadStream standardInput, WriteStream standardOutput) {
@@ -98,4 +120,8 @@ public class BaseContext extends Context {
     }
   }
 
+  @Override
+  public String toString() {
+    return "bindings: " + bindings;
+  }
 }

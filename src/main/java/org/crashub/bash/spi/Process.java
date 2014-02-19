@@ -8,12 +8,11 @@ package org.crashub.bash.spi;
 public interface Process {
 
   /**
-   * Execute the process
+   * Execute the process.
    *
-   * @param standardInput the input
-   * @param standardOutput the output
+   * @param context the context of execution for this process
    * @return the process result
    */
-  Object execute(ReadStream standardInput, WriteStream standardOutput);
+  Object execute(Context context);
 
 }

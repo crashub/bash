@@ -100,7 +100,7 @@ public class Script {
     public org.crashub.bash.spi.Process createProcess(final Context context) {
       return new Process() {
         @Override
-        public Object execute(ReadStream standardInput, WriteStream standardOutput) {
+        public Object execute(Context context) {
           while  (true) {
             Object value = test();
             if (value instanceof Integer) {
@@ -183,7 +183,7 @@ public class Script {
         public Process createProcess(final Context context) {
           return new Process() {
             @Override
-            public Object execute(ReadStream standardInput, WriteStream standardOutput) {
+            public Object execute(Context context) {
               _EQUALS(child, context);
               return null;
             }

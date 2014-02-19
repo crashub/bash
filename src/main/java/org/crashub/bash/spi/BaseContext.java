@@ -55,12 +55,13 @@ public class BaseContext implements Context {
   public final org.crashub.bash.spi.Process createCommand(final String command, final List<String> parameters) {
     return new Process() {
       @Override
-      public Object execute(ReadStream standardInput, WriteStream standardOutput) {
+      public Object execute(Context context) {
+        NestedContext nested = (NestedContext)context;
         Callable<?> impl = createCommand(
             command,
             parameters,
-            ((BinaryReadStream)standardInput).in,
-            ((BinaryWriteStream)standardOutput).out);
+            nested.standardInput,
+            nested.standardOutput);
         if (impl == null) {
           throw new UnsupportedOperationException("Command " + command + " not implemented");
         }
@@ -75,49 +76,66 @@ public class BaseContext implements Context {
     };
   }
 
+  static class NestedContext implements  Context {
+
+    final Context parent;
+    final InputStream standardInput;
+    final OutputStream standardOutput;
+
+    NestedContext(Context parent, InputStream standardInput, OutputStream standardOutput) {
+      this.parent = parent;
+      this.standardInput = standardInput;
+      this.standardOutput = standardOutput;
+    }
+
+    @Override
+    public Object getBinding(String name) {
+      return parent.getBinding(name);
+    }
+
+    @Override
+    public void setBinding(String name, Object value) {
+      parent.setBinding(name, value);
+    }
+
+    @Override
+    public Process createCommand(String command, List<String> parameters) {
+      return parent.createCommand(command, parameters);
+    }
+
+    @Override
+    public Object execute(Process[] pipeline) {
+      return parent.execute(pipeline);
+    }
+  }
+
   @Override
   public final Object execute(Process[] pipeline) {
     Object last = null;
-    BinaryReadStream readStream = new BinaryReadStream(new ByteArrayInputStream(new byte[0]));
+    InputStream readStream = new ByteArrayInputStream(new byte[0]);
     for (int i = 0;i < pipeline.length;i++) {
       Process process = pipeline[i];
       if (i == pipeline.length - 1) {
-        BinaryWriteStream writeStream = new BinaryWriteStream(out);
-        last = process.execute(readStream, writeStream);
+        last = process.execute(new NestedContext(this, readStream, out));
         try {
-          writeStream.out.flush();
+          out.flush();
         }
         catch (IOException e) {
           throw new UndeclaredThrowableException(e, "Handle me gracefully");
         }
       } else {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        BinaryWriteStream writeStream = new BinaryWriteStream(buffer);
-        last = process.execute(readStream, writeStream);
+        last = process.execute(new NestedContext(this, readStream, buffer));
         try {
-          writeStream.out.close();
+          buffer.close();
         }
         catch (IOException e) {
           throw new UndeclaredThrowableException(e, "Handle me gracefully");
         }
-        readStream = new BinaryReadStream(new ByteArrayInputStream(buffer.toByteArray()));
+        readStream = new ByteArrayInputStream(buffer.toByteArray());
       }
     }
     return last;
-  }
-
-  private static class BinaryReadStream implements ReadStream {
-    final InputStream in;
-    protected BinaryReadStream(InputStream in) {
-      this.in = in;
-    }
-  }
-
-  private static class BinaryWriteStream implements WriteStream {
-    final OutputStream out;
-    protected BinaryWriteStream(OutputStream out) {
-      this.out = out;
-    }
   }
 
   @Override

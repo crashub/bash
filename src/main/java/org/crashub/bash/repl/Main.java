@@ -13,6 +13,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
@@ -56,6 +58,23 @@ public class Main {
                 if (pattern.matcher(line).find()) {
                   writer.println(line);
                 }
+              }
+              return null;
+            }
+          };
+        } else if ("sort".equals(command)) {
+          return new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+              ArrayList<String> lines = new ArrayList<String>();
+              Scanner scanner = new Scanner(standardInput);
+              while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                lines.add(line);
+              }
+              Collections.sort(lines);
+              for (String line : lines) {
+                writer.println(line);
               }
               return null;
             }

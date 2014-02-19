@@ -146,7 +146,7 @@ public class Script {
   }
 
   private Block _WHILE(final Tree tree, Context context) {
-    final Tree condition = assertTree(tree.getChild(0), java_libbashParser.LIST).getChild(0);
+    final Tree condition = assertTree(tree.getChild(0), java_libbashParser.LIST);
     final Tree body = tree.getChild(1);
     return new Loop(context, body) {
       @Override
@@ -444,7 +444,8 @@ public class Script {
   }
 
   private Block _COMMAND(Tree tree, Context context) {
-    Tree child = tree.getChild(0);
+    assertTree(tree, java_libbashParser.COMMAND);
+    final Tree child = tree.getChild(0);
     switch (child.getType()) {
       case java_libbashParser.STRING:
         Object command = _STRING(child, context);
@@ -466,12 +467,84 @@ public class Script {
         return _WHILE(child, context);
       case java_libbashParser.CFOR:
         return _CFOR(child, context);
+      case java_libbashParser.IF_STATEMENT:
+        return _IF_STATEMENT(child, context);
+      case java_libbashParser.ARITHMETIC_EXPRESSION:
+        return new Block() {
+          @Override
+          public Process createProcess(Context context) {
+            return new Process() {
+              @Override
+              public Object execute(Context context) {
+                return _ARITHMETIC_EXPRESSION(child, context);
+              }
+            };
+          }
+        };
+      case java_libbashParser.COMPOUND_COND:
+        return new Block() {
+          @Override
+          public Process createProcess(Context context) {
+            return new Process() {
+              @Override
+              public Object execute(Context context) {
+                return _COMPOUND_COND(child, context);
+              }
+            };
+          }
+        };
       default:
         throw unsupported(child);
     }
   }
 
+  private Object _COMPOUND_COND(Tree tree, Context context) {
+    assertTree(tree, java_libbashParser.COMPOUND_COND);
+    Tree test = assertTree(tree.getChild(0), java_libbashParser.BUILTIN_TEST);
+    Tree testName = assertTree(test.getChild(0), java_libbashParser.NAME);
+    String testType = testName.getText();
+    Object left = _STRING(testName.getChild(0), context);
+    Object right = _STRING(testName.getChild(1), context);
+    if (testType.equals("gt")) {
+      int leftV = fooInt(left);
+      int rightV = fooInt(right);
+      return leftV > rightV ? 1 : 0;
+    } else {
+      throw new UnsupportedOperationException("Test type " + testType + " not implemented");
+    }
+  }
+
+  private Block _IF_STATEMENT(final Tree tree, Context context) {
+    final Tree if_ = assertTree(tree.getChild(0), java_libbashParser.IF);
+    return new Block() {
+      @Override
+      public Process createProcess(Context context) {
+        return new Process() {
+          @Override
+          public Object execute(Context context) {
+            Object b = _LIST(if_.getChild(0), context);
+            int v = fooInt(b);
+            if (v != 0) {
+              Tree c = if_.getChild(1);
+              return _LIST(c, context);
+            } else {
+              Tree child = tree.getChild(1);
+              if (child != null) {
+                Tree else_ = assertTree(child, java_libbashParser.ELSE);
+                Tree else_list = assertTree(else_.getChild(0), java_libbashParser.LIST);
+                return _LIST(else_list, context);
+              } else {
+                return null;
+              }
+            }
+          }
+        };
+      }
+    };
+  }
+
   private Object _LIST(Tree tree, Context context) {
+    assertTree(tree, java_libbashParser.LIST);
     int count = tree.getChildCount();
     Object last = null;
     for (int index = 0; index < count;index++) {
@@ -480,10 +553,6 @@ public class Script {
         case java_libbashParser.COMMAND: {
           Block block = _COMMAND(child, context);
           last = context.execute(new Process[]{block.createProcess(context)});
-          break;
-        }
-        case java_libbashParser.ARITHMETIC_EXPRESSION: {
-          last = _ARITHMETIC_EXPRESSION(child, context);
           break;
         }
         case java_libbashParser.PIPE: {
@@ -542,7 +611,9 @@ public class Script {
     if (type == null) {
       type = Integer.toString(tree.getType());
     }
-    writer.println(type);
+    writer.print(type);
+    writer.print(": ");
+    writer.println(tree.getText());
     padding += "  ";
     for (int i = 0;i < tree.getChildCount();i++) {
       printTree(writer, padding, tree.getChild(i));

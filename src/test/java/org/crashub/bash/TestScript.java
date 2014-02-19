@@ -291,6 +291,7 @@ public class TestScript extends TestCase {
         "do\n" +
         "i=$((i+1))\n" +
         "done");
+    script.prettyPrint();
     Context context = new TestableContext();
     script.execute(context);
     Object i = context.getBinding("i");
@@ -310,6 +311,56 @@ public class TestScript extends TestCase {
     script.execute(context);
     assertEquals("5", context.getBinding("j"));
     assertEquals(6, context.getBinding("i"));
+  }
+
+  public void testIF_STATEMENT() throws Exception {
+    String[] scripts = {
+        "if [ $t -gt 0 ]\n" +
+        "then\n" +
+        "a=was_if\n" +
+        "fi",
+        "if test $t -gt 0\n" +
+        "then\n" +
+        "a=was_if\n" +
+        "fi"
+    };
+    for (String script : scripts) {
+      Context context1 = new TestableContext();
+      context1.setBinding("t", 1);
+      new Script(script).execute(context1);
+      assertEquals("was_if", context1.getBinding("a"));
+      Context context2 = new TestableContext();
+      context2.setBinding("t", -1);
+      new Script(script).execute(context2);
+      assertEquals(null, context2.getBinding("a"));
+    }
+  }
+
+  public void testIF_STATEMENT_ELSE() throws Exception {
+    String[] scripts = {
+        "if [ $t -gt 0 ]\n" +
+        "then\n" +
+        "a=was_if\n" +
+        "else\n" +
+        "a=was_else\n" +
+        "fi",
+        "if test $t -gt 0\n" +
+        "then\n" +
+        "a=was_if\n" +
+        "else\n" +
+        "a=was_else\n" +
+        "fi",
+    };
+    for (String script : scripts) {
+      Context context1 = new TestableContext();
+      context1.setBinding("t", 1);
+      new Script(script).execute(context1);
+      assertEquals("was_if", context1.getBinding("a"));
+      Context context2 = new TestableContext();
+      context2.setBinding("t", -1);
+      new Script(script).execute(context2);
+      assertEquals("was_else", context2.getBinding("a"));
+    }
   }
 
   public void testNesting() throws Exception {

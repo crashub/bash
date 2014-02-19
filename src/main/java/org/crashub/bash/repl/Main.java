@@ -1,8 +1,9 @@
-package org.crashub.bash;
+package org.crashub.bash.repl;
 
 import jline.Terminal;
 import jline.TerminalFactory;
 import jline.console.ConsoleReader;
+import org.crashub.bash.Script;
 import org.crashub.bash.spi.BaseContext;
 import org.crashub.bash.spi.Context;
 
@@ -22,7 +23,7 @@ import java.util.regex.Pattern;
  *
  * @author Julien Viet
  */
-public class Repl {
+public class Main {
 
   public static void main(String[] args) throws Exception {
     Terminal term = TerminalFactory.create();

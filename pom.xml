@@ -62,7 +62,7 @@
                   <goal>java</goal>
                 </goals>
                 <configuration>
-                  <mainClass>org.crashub.bash.Repl</mainClass>
+                  <mainClass>org.crashub.bash.repl.Main</mainClass>
                 </configuration>
               </execution>
             </executions>

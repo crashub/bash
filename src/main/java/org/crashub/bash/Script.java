@@ -17,6 +17,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -476,19 +477,21 @@ public class Script {
     for (int index = 0; index < count;index++) {
       Tree child = tree.getChild(index);
       switch (child.getType()) {
-        case java_libbashParser.COMMAND:
+        case java_libbashParser.COMMAND: {
           Block block = _COMMAND(child, context);
           last = context.execute(new Process[]{block.createProcess(context)});
           break;
-        case java_libbashParser.ARITHMETIC_EXPRESSION:
+        }
+        case java_libbashParser.ARITHMETIC_EXPRESSION: {
           last = _ARITHMETIC_EXPRESSION(child, context);
           break;
+        }
         case java_libbashParser.PIPE: {
-          Process[] pipeline = new Process[child.getChildCount()];
-          for (int c = 0;c < child.getChildCount();c++) {
-            Tree pipeComponent = child.getChild(c);
-            assertTree(pipeComponent, java_libbashParser.COMMAND);
-            pipeline[c] = _COMMAND(child.getChild(c), context).createProcess(context);
+          List<Block> blocks = _PIPE(child, context);
+          Process[] pipeline = new Process[blocks.size()];
+          int c = 0;
+          for (Block block : blocks) {
+            pipeline[c++] = block.createProcess(context);
           }
           last  = context.execute(pipeline);
           break;
@@ -498,6 +501,26 @@ public class Script {
       }
     }
     return last;
+  }
+
+  private List<Block> _PIPE(Tree tree, Context context) {
+    assertTree(tree, java_libbashParser.PIPE);
+    LinkedList<Block> ret = new LinkedList<Block>();
+    Tree rest = tree.getChild(0);
+    switch (rest.getType()) {
+      case java_libbashParser.COMMAND:
+        ret.add(_COMMAND(rest, context));
+        break;
+      case java_libbashParser.PIPE: {
+        ret.addAll(_PIPE(rest, context));
+        break;
+      }
+      default:
+        throw unsupported(rest);
+    }
+    Block last = _COMMAND(tree.getChild(1), context);
+    ret.add(last);
+    return ret;
   }
 
   public void prettyPrint() {

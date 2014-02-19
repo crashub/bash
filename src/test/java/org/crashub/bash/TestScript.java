@@ -73,7 +73,7 @@ public class TestScript extends TestCase {
 
   public void testPipeline() throws Exception {
     final ArrayList<String> list = new ArrayList<String>();
-    new Script("foo | bar").execute(new TestableContext(new BaseContext.CommandResolver() {
+    BaseContext.CommandResolver resolver = new BaseContext.CommandResolver() {
       @Override
       public Callable<?> resolveCommand(final String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         return new Callable<Object>() {
@@ -84,8 +84,12 @@ public class TestScript extends TestCase {
           }
         };
       }
-    }));
+    };
+    new Script("foo | bar").execute(new TestableContext(resolver));
     assertEquals(Arrays.asList("foo", "bar"), list);
+    list.clear();
+    new Script("foo | bar | juu").execute(new TestableContext(resolver));
+    assertEquals(Arrays.asList("foo", "bar", "juu"), list);
   }
 
   public void testBackquotes() throws Exception {

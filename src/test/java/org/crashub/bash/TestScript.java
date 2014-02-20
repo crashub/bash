@@ -397,4 +397,26 @@ public class TestScript extends TestCase {
     script.eval(context);
     assertEquals("12345", context.getStandardOutput());
   }
+
+  public void testFunction() throws Exception {
+    Script script = new Script("hello() { foo; }");
+    TestableContext context = new TestableContext(new BaseContext.CommandResolver() {
+      @Override
+      public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+        if ("foo".equals(command)) {
+          return new Callable<Object>() {
+            @Override
+            public Object call() throws Exception {
+              return "foo_value";
+            }
+          };
+        } else {
+          return null;
+        }
+      }
+    });
+    script.eval(context);
+    assertNotNull(context.getFunction("hello"));
+    assertEquals("foo_value", new Script("hello").eval(context));
+  }
 }

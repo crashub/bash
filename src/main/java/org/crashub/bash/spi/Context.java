@@ -29,6 +29,21 @@ public interface Context {
   void setBinding(String name, Object value);
 
   /**
+   * Set a function.
+   * @param name the function name
+   * @param function the function node
+   */
+  void setFunction(String name, Node function);
+
+  /**
+   * Return a function.
+   *
+   * @param name the function name
+   * @return the function node
+   */
+  Node getFunction(String name);
+
+  /**
    * Create a process for the command.
    *
    * @param command the command name to execute

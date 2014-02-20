@@ -46,6 +46,9 @@ public class BaseContext implements Context {
   final Map<String, Object> bindings;
 
   /** . */
+  final Map<String, Node> functions;
+
+  /** . */
   protected final InputStream standardInput;
 
   /** . */
@@ -64,6 +67,7 @@ public class BaseContext implements Context {
     this.standardInput = standardInput;
     this.standardOutput = standardOutput;
     this.bindings = bindings;
+    this.functions = new HashMap<String, Node>();
   }
 
   // Fluent method
@@ -84,30 +88,48 @@ public class BaseContext implements Context {
     }
   }
 
+  @Override
+  public void setFunction(String name, Node function) {
+    if (function != null) {
+      functions.put(name, function);
+    } else {
+      functions.remove(name);
+    }
+  }
+
+  @Override
+  public Node getFunction(String name) {
+    return functions.get(name);
+  }
 
   @Override
   public final Node createCommand(final String command, final List<String> parameters) {
-    return new Node() {
-      @Override
-      public Object eval(Context context) {
-        BaseContext nested = (BaseContext)context;
-        Callable<?> impl = commandResolver.resolveCommand(
-            command,
-            parameters,
-            nested.standardInput,
-            nested.standardOutput);
-        if (impl == null) {
-          throw new UnsupportedOperationException("Command " + command + " not implemented");
+    Node function = functions.get(command);
+    if (function != null) {
+      return function;
+    } else {
+      return new Node() {
+        @Override
+        public Object eval(Context context) {
+          BaseContext nested = (BaseContext)context;
+          Callable<?> impl = commandResolver.resolveCommand(
+              command,
+              parameters,
+              nested.standardInput,
+              nested.standardOutput);
+          if (impl == null) {
+            throw new UnsupportedOperationException("Command " + command + " not implemented");
+          }
+          try {
+            return impl.call();
+          }
+          catch (Exception e) {
+            // Should be done better later when we take care of exception handling
+            throw new UndeclaredThrowableException(e);
+          }
         }
-        try {
-          return impl.call();
-        }
-        catch (Exception e) {
-          // Should be done better later when we take care of exception handling
-          throw new UndeclaredThrowableException(e);
-        }
-      }
-    };
+      };
+    }
   }
 
   @Override

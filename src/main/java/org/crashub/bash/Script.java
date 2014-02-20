@@ -9,6 +9,7 @@ import org.crashub.bash.ir.COMPOUND_COND;
 import org.crashub.bash.ir.Command;
 import org.crashub.bash.ir.Comparator;
 import org.crashub.bash.ir.Expression;
+import org.crashub.bash.ir.Function;
 import org.crashub.bash.ir.IF_STATEMENT;
 import org.crashub.bash.ir.LIST;
 import org.crashub.bash.ir.Node;
@@ -262,6 +263,29 @@ public class Script {
         return _ARITHMETIC_EXPRESSION(child);
       case java_libbashParser.COMPOUND_COND:
         return _COMPOUND_COND(child);
+      case java_libbashParser.FUNCTION:
+        return _FUNCTION(child);
+      default:
+        throw unsupported(child);
+    }
+  }
+
+  private Node _FUNCTION(Tree tree) {
+    assertTree(tree, java_libbashParser.FUNCTION);
+    String name = STRING_NAME(tree.getChild(0));
+    Tree currentShell = assertTree(tree.getChild(1), java_libbashParser.CURRENT_SHELL);
+    Tree list = currentShell.getChild((0));
+    LIST body = _LIST(list);
+    return new Function(name, body);
+  }
+
+  private static String STRING_NAME(Tree tree) {
+    assertTree(tree, java_libbashParser.STRING);
+    Tree child = tree.getChild(0);
+    switch (child.getType()) {
+      case java_libbashParser.LETTER:
+      case java_libbashParser.NAME:
+        return child.getText();
       default:
         throw unsupported(child);
     }

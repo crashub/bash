@@ -1,5 +1,7 @@
 package org.crashub.bash.spi;
 
+import org.crashub.bash.ir.Node;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -84,10 +86,10 @@ public class BaseContext implements Context {
 
 
   @Override
-  public final org.crashub.bash.spi.Process createCommand(final String command, final List<String> parameters) {
-    return new Process() {
+  public final Node createCommand(final String command, final List<String> parameters) {
+    return new Node() {
       @Override
-      public Object execute(Context context) {
+      public Object eval(Context context) {
         BaseContext nested = (BaseContext)context;
         Callable<?> impl = commandResolver.resolveCommand(
             command,
@@ -109,13 +111,13 @@ public class BaseContext implements Context {
   }
 
   @Override
-  public final Object execute(Process[] pipeline) {
+  public final Object execute(Node[] pipeline) {
     Object last = null;
     InputStream in = standardInput;
     for (int i = 0;i < pipeline.length;i++) {
-      Process process = pipeline[i];
+      Node process = pipeline[i];
       if (i == pipeline.length - 1) {
-        last = process.execute(new BaseContext(commandResolver, in, standardOutput, bindings));
+        last = process.eval(new BaseContext(commandResolver, in, standardOutput, bindings));
         try {
           standardOutput.flush();
         }
@@ -124,7 +126,7 @@ public class BaseContext implements Context {
         }
       } else {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        last = process.execute(new BaseContext(commandResolver, in, buffer, bindings));
+        last = process.eval(new BaseContext(commandResolver, in, buffer, bindings));
         try {
           buffer.close();
         }

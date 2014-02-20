@@ -88,7 +88,7 @@ public class Main {
       String s = reader.readLine("> ");
       Script script = new Script(s);
       try {
-        Object ret = script.execute(context);
+        Object ret = script.eval(context);
         if (ret != null) {
           out.print("-> ");
           out.println(ret);

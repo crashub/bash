@@ -25,13 +25,13 @@ public class TestScript extends TestCase {
 
   private Object eval(Context context, String s) throws RecognitionException {
     Script script = new Script("a=" + s);
-    script.execute(context);
+    script.eval(context);
     return context.getBinding("a");
   }
 
   public void testCommand() throws Exception {
     final AtomicInteger count = new AtomicInteger();
-    Object ret = new Script("foo").execute(new TestableContext(new BaseContext.CommandResolver() {
+    Object ret = new Script("foo").eval(new TestableContext(new BaseContext.CommandResolver() {
       @Override
       public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if ("foo".equals(command) && parameters.isEmpty()) {
@@ -42,7 +42,8 @@ public class TestScript extends TestCase {
               return "foo_value";
             }
           };
-        } else {
+        }
+        else {
           return null;
         }
       }
@@ -52,7 +53,7 @@ public class TestScript extends TestCase {
 
   public void testCommandWithArgument() throws Exception {
     final AtomicInteger count = new AtomicInteger();
-    Object ret = new Script("foo bar").execute(new TestableContext(new BaseContext.CommandResolver() {
+    Object ret = new Script("foo bar").eval(new TestableContext(new BaseContext.CommandResolver() {
       @Override
       public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if ("foo".equals(command) && Arrays.asList("bar").equals(parameters)) {
@@ -63,7 +64,8 @@ public class TestScript extends TestCase {
               return "foo_value";
             }
           };
-        } else {
+        }
+        else {
           return null;
         }
       }
@@ -85,10 +87,10 @@ public class TestScript extends TestCase {
         };
       }
     };
-    new Script("foo | bar").execute(new TestableContext(resolver));
+    new Script("foo | bar").eval(new TestableContext(resolver));
     assertEquals(Arrays.asList("foo", "bar"), list);
     list.clear();
-    new Script("foo | bar | juu").execute(new TestableContext(resolver));
+    new Script("foo | bar | juu").eval(new TestableContext(resolver));
     assertEquals(Arrays.asList("foo", "bar", "juu"), list);
   }
 
@@ -108,7 +110,7 @@ public class TestScript extends TestCase {
   public void testVARIABLE_DEFINITIONS() throws Exception {
     Script script = new Script("i=3\n");
     Context context = new TestableContext();
-    script.execute(context);
+    script.eval(context);
     Object i = context.getBinding("i");
     assertEquals("3", i);
   }
@@ -280,7 +282,7 @@ public class TestScript extends TestCase {
     Script script = new Script("a=$((i))");
     BaseContext context = new TestableContext();
     context.bind("i", "3");
-    script.execute(context);
+    script.eval(context);
     assertEquals("3", context.getBinding("a"));
   }
 
@@ -293,7 +295,7 @@ public class TestScript extends TestCase {
         "done");
     script.prettyPrint();
     Context context = new TestableContext();
-    script.execute(context);
+    script.eval(context);
     Object i = context.getBinding("i");
     assertEquals("6", i);
   }
@@ -305,10 +307,10 @@ public class TestScript extends TestCase {
         "j=$((i))\n" +
         "done");
     Context context = new TestableContext();
-    script.execute(context);
+    script.eval(context);
     assertEquals("5", context.getBinding("j"));
     assertEquals(6, context.getBinding("i"));
-    script.execute(context);
+    script.eval(context);
     assertEquals("5", context.getBinding("j"));
     assertEquals(6, context.getBinding("i"));
   }
@@ -327,11 +329,11 @@ public class TestScript extends TestCase {
     for (String script : scripts) {
       Context context1 = new TestableContext();
       context1.setBinding("t", 1);
-      new Script(script).execute(context1);
+      new Script(script).eval(context1);
       assertEquals("was_if", context1.getBinding("a"));
       Context context2 = new TestableContext();
       context2.setBinding("t", -1);
-      new Script(script).execute(context2);
+      new Script(script).eval(context2);
       assertEquals(null, context2.getBinding("a"));
     }
   }
@@ -354,11 +356,11 @@ public class TestScript extends TestCase {
     for (String script : scripts) {
       Context context1 = new TestableContext();
       context1.setBinding("t", 1);
-      new Script(script).execute(context1);
+      new Script(script).eval(context1);
       assertEquals("was_if", context1.getBinding("a"));
       Context context2 = new TestableContext();
       context2.setBinding("t", -1);
-      new Script(script).execute(context2);
+      new Script(script).eval(context2);
       assertEquals("was_else", context2.getBinding("a"));
     }
   }
@@ -389,7 +391,7 @@ public class TestScript extends TestCase {
         }
       }
     });
-    script.execute(context);
+    script.eval(context);
     assertEquals("12345", context.getStandardOutput());
   }
 }

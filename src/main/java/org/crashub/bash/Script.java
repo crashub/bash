@@ -4,8 +4,18 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.RecognitionException;
 import org.antlr.runtime.tree.Tree;
+import org.crashub.bash.ir.CFOR;
+import org.crashub.bash.ir.COMPOUND_COND;
+import org.crashub.bash.ir.Command;
+import org.crashub.bash.ir.Comparator;
+import org.crashub.bash.ir.Expression;
+import org.crashub.bash.ir.IF_STATEMENT;
+import org.crashub.bash.ir.LIST;
+import org.crashub.bash.ir.Node;
+import org.crashub.bash.ir.PIPE;
+import org.crashub.bash.ir.STRING;
+import org.crashub.bash.ir.WHILE;
 import org.crashub.bash.spi.Context;
-import org.crashub.bash.spi.Process;
 import org.gentoo.libbash.java_libbashLexer;
 import org.gentoo.libbash.java_libbashParser;
 
@@ -56,16 +66,29 @@ public class Script {
     tree = (Tree)parser(s).start().getTree();
   }
 
-  public Object execute(Context context) {
+  /**
+   * @return the script intermediate representation
+   */
+  public Node toIR() {
     switch (tree.getType()) {
       case java_libbashParser.LIST:
-        return _LIST(tree, context);
+        return _LIST(tree);
       default:
         throw unsupported(tree);
     }
   }
 
-  private UnsupportedOperationException unsupported(Tree tree) {
+  /**
+   * Evaluate the script.
+   *
+   * @param context the evaluation context
+   * @return the evaluated value
+   */
+  public Object eval(Context context) {
+    return toIR().eval(context);
+  }
+
+  static UnsupportedOperationException unsupported(Tree tree) {
     StringWriter msg = new StringWriter();
     msg.append("Tree ").append(constants.get(tree.getType())).append(" not yet implemented:\n");
     PrintWriter writer = new PrintWriter(msg);
@@ -79,7 +102,7 @@ public class Script {
     return x;
   }
 
-  private Tree assertTree(Tree tree, int... types) {
+  static Tree assertTree(Tree tree, int... types) {
     for (int type : types) {
       if (tree.getType() == type) {
         return tree;
@@ -88,246 +111,87 @@ public class Script {
     throw unsupported(tree);
   }
 
-  // Base class for loops
-  private abstract class Loop extends Block {
-    final Context context;
-    final Tree body;
-    protected Loop(Context context, Tree body) {
-      this.context = context;
-      this.body = body;
-    }
-    protected abstract Object test(boolean initialize);
-    @Override
-    public org.crashub.bash.spi.Process createProcess(final Context context) {
-      return new Process() {
-        @Override
-        public Object execute(Context context) {
-          boolean initialize = true;
-          while  (true) {
-            Object value = test(initialize);
-            initialize = false;
-            if (value instanceof Integer) {
-              int v = (Integer) value;
-              if (v == 0) {
-                break;
-              } else {
-                switch (body.getType()) {
-                  case java_libbashParser.LIST:
-                    _LIST(body, context);
-                    break;
-                  default:
-                    throw unsupported(body);
-                }
-              }
-            }
-          }
-          return null;
-        }
-      };
-    }
+  private CFOR _CFOR(final Tree tree) {
+    final Tree initTree = assertTree(tree.getChild(0), java_libbashParser.FOR_INIT);
+    final Tree condTree = assertTree(tree.getChild(1), java_libbashParser.FOR_COND);
+    final Tree bodyTree = assertTree(tree.getChild(2), java_libbashParser.LIST);
+    final Tree modTree = assertTree(tree.getChild(3), java_libbashParser.FOR_MOD);
+    Expression<?> init = _ARITHMETIC(assertTree(initTree.getChild(0), java_libbashParser.ARITHMETIC));
+    Expression<?> mod = _ARITHMETIC(modTree.getChild(0));
+    Expression<?> test = _ARITHMETIC(condTree.getChild(0));
+    LIST body = _LIST(bodyTree);
+    return new CFOR(body, init, mod, test);
   }
 
-  private Block _CFOR(final Tree tree, Context context) {
-    final Tree init = assertTree(tree.getChild(0), java_libbashParser.FOR_INIT);
-    final Tree cond = assertTree(tree.getChild(1), java_libbashParser.FOR_COND);
-    final Tree body = assertTree(tree.getChild(2), java_libbashParser.LIST);
-    final Tree mod = assertTree(tree.getChild(3), java_libbashParser.FOR_MOD);
-    return new Loop(context, body) {
-      @Override
-      protected Object test(boolean initialize) {
-        if (initialize) {
-          _ARITHMETIC(assertTree(init.getChild(0), java_libbashParser.ARITHMETIC), context);
-        } else {
-          _ARITHMETIC(mod.getChild(0), context);
-        }
-        return _ARITHMETIC(cond.getChild(0), context);
-      }
-    };
-  }
-
-  private Block _WHILE(final Tree tree, Context context) {
+  private WHILE _WHILE(final Tree tree) {
     final Tree condition = assertTree(tree.getChild(0), java_libbashParser.LIST);
     final Tree body = tree.getChild(1);
-    return new Loop(context, body) {
-      @Override
-      protected Object test(boolean initialize) {
-        return _LIST(condition, context);
-      }
-    };
+    final LIST cond = _LIST(condition);
+    LIST b = _LIST(body);
+    return new WHILE(b, cond);
   }
 
-  private Object _EQUALS(Tree tree, Context context) {
-    Tree lhs = assertTree(tree.getChild(0), java_libbashParser.LETTER);
-    String name = lhs.getText();
-    Tree rhs = tree.getChild(1);
-    Object value;
-    switch (rhs.getType()) {
+  private static Expression.Assign _EQUALS(Tree tree) {
+    Tree lhsTree = assertTree(tree.getChild(0), java_libbashParser.LETTER);
+    final Tree rhsTree = tree.getChild(1);
+    String identifier = lhsTree.getText();
+    Node rhs;
+    switch (rhsTree.getType()) {
       case java_libbashParser.STRING: {
-        value = _STRING(rhs, context);
+        rhs = _STRING(rhsTree);
         break;
       }
       case java_libbashParser.DIGIT: {
-        value = evalExpression(rhs, context);
+        rhs = evalExpression(rhsTree);
         break;
       }
       default:
-        throw unsupported(rhs);
+        throw unsupported(rhsTree);
     }
-    context.setBinding(name, value);
-    return value;
+    return new Expression.Assign(identifier, rhs);
   }
 
-  private Block _VARIABLE_DEFINITIONS(Tree tree, Context context) {
+  private Node _VARIABLE_DEFINITIONS(Tree tree) {
     final Tree child = tree.getChild(0);
     if (child.getType() == java_libbashParser.EQUALS) {
-      return new Block() {
-        @Override
-        public Process createProcess(final Context context) {
-          return new Process() {
-            @Override
-            public Object execute(Context context) {
-              _EQUALS(child, context);
-              return null;
-            }
-          };
-        }
-      };
+      return _EQUALS(child);
     } else {
       throw unsupported(tree);
     }
   }
 
-  private Object _STRING(Tree tree, Context context) {
-    assertTree(tree, java_libbashParser.STRING);
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0;i < tree.getChildCount();i++) {
-      Tree child = tree.getChild(i);
-      Object o;
-      switch (child.getType()) {
-        case java_libbashParser.DIGIT:
-          o = Integer.parseInt(child.getText());
-          break;
-        case java_libbashParser.ARITHMETIC_EXPRESSION:
-          o = _ARITHMETIC_EXPRESSION(child, context);
-        break;
-        case java_libbashParser.PLUS:
-          o = "+";
-          break;
-        case java_libbashParser.VAR_REF:
-          o = _VAR_REF(child, context);
-          break;
-        case java_libbashParser.LETTER:
-        case java_libbashParser.NAME:
-        case java_libbashParser.BLANK:
-          o = child.getText();
-          break;
-        default:
-          throw unsupported(child);
-      }
-      sb.append(o);
-    }
-    return sb.toString();
-  }
-
-  private static final int ACTION_DISPLAY = 0;
-  private static final int ACTION_USE = 1;
-  private static final int ACTION_ASSIGN = 2;
-
-  private Object _VAR_REF(Tree tree, Context context) {
+  static Expression.VarRef _VAR_REF(Tree tree) {
     Tree child = tree.getChild(0);
     int childType = child.getType();
     switch (childType) {
       case java_libbashParser.LETTER:
-      case java_libbashParser.NAME: {
-        return context.getBinding(child.getText());
-      }
+      case java_libbashParser.NAME:
+        return new Expression.VarRef.Eval(child.getText());
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL:
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET:
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL:
-      case java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL: {
-
-        int action;
-        String identifier = child.getChild(0).getText();
-        Object o = context.getBinding(identifier);
-        if (o != null) {
-          if (o.toString().length() > 0) {
-            return o;
-          } else {
-            if (childType == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
-              action = ACTION_DISPLAY;
-            } else if (childType == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
-              action = ACTION_USE;
-            } else if (childType == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
-              action = ACTION_ASSIGN;
-            } else {
-              return o;
-            }
-          }
-        } else {
-          if (childType == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET || childType == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
-            action = ACTION_ASSIGN;
-          } else if (childType == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
-            action = ACTION_USE;
-          }else {
-            action = ACTION_DISPLAY;
-          }
-        }
-
-        //
-        switch (action) {
-          case ACTION_DISPLAY: {
-            String s = _STRING(child.getChild(1), context).toString();
-            throw new RuntimeException(s);
-          }
-          case ACTION_USE: {
-            return _STRING(child.getChild(1), context).toString();
-          }
-          case ACTION_ASSIGN: {
-            String s = _STRING(child.getChild(1), context).toString();
-            context.setBinding(identifier, s);
-            return s;
-          }
-          default:
-            throw new AssertionError();
-        }
-      }
+      case java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL:
+        return new Expression.VarRef.Default(
+            child.getChild(0).getText(),
+            child.getType(),
+            _STRING(child.getChild(1)));
       default:
         throw unsupported(child);
     }
   }
 
-  private Object _ARITHMETIC_EXPRESSION(Tree tree, Context context) {
+  static Expression<?> _ARITHMETIC_EXPRESSION(Tree tree) {
     Tree arithmetic = assertTree(tree.getChild(0), java_libbashParser.ARITHMETIC);
-    return _ARITHMETIC(arithmetic, context);
+    return _ARITHMETIC(arithmetic);
   }
 
-  private Object _ARITHMETIC(Tree tree, Context context) {
+  private static Expression<?> _ARITHMETIC(Tree tree) {
     assertTree(tree, java_libbashParser.ARITHMETIC);
-    Tree expression = assertTree(
-        tree.getChild(0),
-        java_libbashParser.MINUS,
-        java_libbashParser.PLUS,
-        java_libbashParser.TIMES,
-        java_libbashParser.SLASH,
-        java_libbashParser.PCT,
-        java_libbashParser.PRE_INCR,
-        java_libbashParser.PRE_DECR,
-        java_libbashParser.POST_INCR,
-        java_libbashParser.POST_DECR,
-        java_libbashParser.LESS_THAN,
-        java_libbashParser.VAR_REF,
-        java_libbashParser.LEQ,
-        java_libbashParser.GEQ,
-        java_libbashParser.EQUALS_TO,
-        java_libbashParser.NOT_EQUALS,
-        java_libbashParser.GREATER_THAN,
-        java_libbashParser.DIGIT,
-        java_libbashParser.EQUALS);
-    return evalExpression(expression, context);
+    return evalExpression(tree.getChild(0));
   }
 
-  private Object evalExpression(Tree tree, Context context) {
+  private static Expression evalExpression(Tree tree) {
     switch (tree.getType()) {
       case java_libbashParser.PLUS:
       case java_libbashParser.MINUS:
@@ -342,252 +206,172 @@ public class Script {
       case java_libbashParser.GREATER_THAN: {
         Tree leftTree = tree.getChild(0);
         Tree rightTree = tree.getChild(1);
-        Object left = evalExpression(leftTree, context);
-        Object right = evalExpression(rightTree, context);
-        int l = fooInt(left);
-        int r = fooInt(right);
-        switch (tree.getType()) {
-          case java_libbashParser.PLUS:
-            return l + r;
-          case java_libbashParser.MINUS:
-            return l - r;
-          case java_libbashParser.TIMES:
-            return l * r;
-          case java_libbashParser.SLASH:
-            return l / r;
-          case java_libbashParser.PCT:
-            return l % r;
-          case java_libbashParser.LESS_THAN:
-            return l < r ? 1 : 0;
-          case java_libbashParser.LEQ:
-            return l <= r ? 1 : 0;
-          case java_libbashParser.GEQ:
-            return l >= r ? 1 : 0;
-          case java_libbashParser.EQUALS_TO:
-            return l == r ? 1 : 0;
-          case java_libbashParser.NOT_EQUALS:
-            return l != r ? 1 : 0;
-          case java_libbashParser.GREATER_THAN:
-            return l > r ? 1 : 0;
-          default:
-            throw new AssertionError();
-        }
+        Expression<?> left = evalExpression(leftTree);
+        Expression<?> right = evalExpression(rightTree);
+        return new Expression.Binary(left, right, tree.getType());
       }
       case java_libbashParser.PRE_INCR:
       case java_libbashParser.PRE_DECR:
       case java_libbashParser.POST_INCR:
       case java_libbashParser.POST_DECR: {
         Tree exprTree = tree.getChild(0);
-        if (exprTree.getType() == java_libbashParser.VAR_REF) {
-          Tree ff = exprTree.getChild(0);
-          if (ff.getType() == java_libbashParser.LETTER || ff.getType() == java_libbashParser.NAME) {
-            String identifier = ff.getText();
-            Object o = context.getBinding(identifier);
-            int val;
-            if (o == null) {
-              val = 0;
-            } else {
-              val = fooInt(o);
-            }
-            int next;
-            switch (tree.getType()) {
-              case java_libbashParser.PRE_INCR:
-                next = ++val;
-                break;
-              case java_libbashParser.PRE_DECR:
-                next = --val;
-                break;
-              case java_libbashParser.POST_INCR:
-                next = val + 1;
-                break;
-              case java_libbashParser.POST_DECR:
-                next = val - 1;
-                break;
-              default:
-                throw new AssertionError();
-            }
-            context.setBinding(identifier, next);
-            return val;
-          } else {
-            // That should be enforced by the AST isn't it ?
-            // for instance $(( ${x}++ )) does not make sense to bash
-            // but it does in our case
-            throw unsupported(ff);
-          }
-        } else {
-          throw unsupported(tree);
-        }
+        Expression.VarRef varRef = _VAR_REF(exprTree);
+        return new Expression.Unary(varRef, tree.getType());
       }
       case java_libbashParser.VAR_REF: {
-        return _VAR_REF(tree, context);
+        return _VAR_REF(tree);
       }
       case java_libbashParser.NUMBER:
       case java_libbashParser.DIGIT: {
-        return Integer.parseInt(tree.getText());
+        return new Expression.Literal(Integer.parseInt(tree.getText()));
       }
       case java_libbashParser.EQUALS: {
-        return _EQUALS(tree, context);
+        return _EQUALS(tree);
       }
       default:
         throw unsupported(tree);
     }
   }
 
-  private int fooInt(Object o) {
-    if (o instanceof Integer) {
-      return (Integer)o;
-    } else if (o instanceof String) {
-      return Integer.parseInt((String)o);
-    } else {
-      throw new UnsupportedOperationException();
-    }
-  }
-
-  private Block _COMMAND(Tree tree, Context context) {
+  private Node _COMMAND(Tree tree) {
     assertTree(tree, java_libbashParser.COMMAND);
     final Tree child = tree.getChild(0);
     switch (child.getType()) {
       case java_libbashParser.STRING:
-        Object command = _STRING(child, context);
+        STRING command = _STRING(child);
         int childCount = tree.getChildCount();
-        List<String> parameters;
+        List<STRING> parameters;
         if (childCount > 1) {
-          parameters = new ArrayList<String>(childCount - 1);
+          parameters = new ArrayList<STRING>(childCount - 1);
           for (int index = 1;index < childCount;index++) {
-            Object o = _STRING(tree.getChild(index), context);
-            parameters.add(o.toString());
+            parameters.add(_STRING(tree.getChild(index)));
           }
         } else {
           parameters = Collections.emptyList();
         }
-        return new Command(command.toString(), parameters);
+        return new Command(command, parameters);
       case java_libbashParser.VARIABLE_DEFINITIONS:
-        return _VARIABLE_DEFINITIONS(child, context);
+        return _VARIABLE_DEFINITIONS(child);
       case java_libbashParser.WHILE:
-        return _WHILE(child, context);
+        return _WHILE(child);
       case java_libbashParser.CFOR:
-        return _CFOR(child, context);
+        return _CFOR(child);
       case java_libbashParser.IF_STATEMENT:
-        return _IF_STATEMENT(child, context);
+        return _IF_STATEMENT(child);
       case java_libbashParser.ARITHMETIC_EXPRESSION:
-        return new Block() {
-          @Override
-          public Process createProcess(Context context) {
-            return new Process() {
-              @Override
-              public Object execute(Context context) {
-                return _ARITHMETIC_EXPRESSION(child, context);
-              }
-            };
-          }
-        };
+        return _ARITHMETIC_EXPRESSION(child);
       case java_libbashParser.COMPOUND_COND:
-        return new Block() {
-          @Override
-          public Process createProcess(Context context) {
-            return new Process() {
-              @Override
-              public Object execute(Context context) {
-                return _COMPOUND_COND(child, context);
-              }
-            };
-          }
-        };
+        return _COMPOUND_COND(child);
       default:
         throw unsupported(child);
     }
   }
 
-  private Object _COMPOUND_COND(Tree tree, Context context) {
+  private static STRING _STRING(Tree tree) {
+    Script.assertTree(tree, java_libbashParser.STRING);
+    Object[] chunks = new Object[tree.getChildCount()];
+    for (int i = 0;i < tree.getChildCount();i++) {
+      Tree child = tree.getChild(i);
+      Object o;
+      switch (child.getType()) {
+        case java_libbashParser.DIGIT:
+          o = Integer.parseInt(child.getText());
+          break;
+        case java_libbashParser.ARITHMETIC_EXPRESSION:
+          o = Script._ARITHMETIC_EXPRESSION(child);
+          break;
+        case java_libbashParser.PLUS:
+          o = "+";
+          break;
+        case java_libbashParser.VAR_REF:
+          o = Script._VAR_REF(child);
+          break;
+        case java_libbashParser.LETTER:
+        case java_libbashParser.NAME:
+        case java_libbashParser.BLANK:
+          o = child.getText();
+          break;
+        default:
+          throw Script.unsupported(child);
+      }
+      chunks[i] = o;
+    }
+    return new STRING(chunks);
+  }
+
+  private Node _COMPOUND_COND(Tree tree) {
     assertTree(tree, java_libbashParser.COMPOUND_COND);
     Tree test = assertTree(tree.getChild(0), java_libbashParser.BUILTIN_TEST);
     Tree testName = assertTree(test.getChild(0), java_libbashParser.NAME);
-    String testType = testName.getText();
-    Object left = _STRING(testName.getChild(0), context);
-    Object right = _STRING(testName.getChild(1), context);
+    final String testType = testName.getText();
+    final STRING left = _STRING(testName.getChild(0));
+    final STRING right = _STRING(testName.getChild(1));
+    Comparator comparator;
     if (testType.equals("gt")) {
-      int leftV = fooInt(left);
-      int rightV = fooInt(right);
-      return leftV > rightV ? 1 : 0;
+      comparator = Comparator.gt;
     } else {
       throw new UnsupportedOperationException("Test type " + testType + " not implemented");
     }
+    return new COMPOUND_COND(comparator, left, right);
   }
 
-  private Block _IF_STATEMENT(final Tree tree, Context context) {
+  private IF_STATEMENT _IF_STATEMENT(final Tree tree) {
     final Tree if_ = assertTree(tree.getChild(0), java_libbashParser.IF);
-    return new Block() {
-      @Override
-      public Process createProcess(Context context) {
-        return new Process() {
-          @Override
-          public Object execute(Context context) {
-            Object b = _LIST(if_.getChild(0), context);
-            int v = fooInt(b);
-            if (v != 0) {
-              Tree c = if_.getChild(1);
-              return _LIST(c, context);
-            } else {
-              Tree child = tree.getChild(1);
-              if (child != null) {
-                Tree else_ = assertTree(child, java_libbashParser.ELSE);
-                Tree else_list = assertTree(else_.getChild(0), java_libbashParser.LIST);
-                return _LIST(else_list, context);
-              } else {
-                return null;
-              }
-            }
-          }
-        };
-      }
-    };
+    final LIST cond = _LIST(if_.getChild(0));
+    final LIST then = _LIST(if_.getChild(1));
+    Tree child = tree.getChild(1);
+    final LIST bilto;
+    if (child != null) {
+      Tree else_ = assertTree(child, java_libbashParser.ELSE);
+      Tree else_list = assertTree(else_.getChild(0), java_libbashParser.LIST);
+      bilto = _LIST(else_list);
+    } else {
+      bilto = null;
+    }
+    return new IF_STATEMENT(cond, then, bilto);
   }
 
-  private Object _LIST(Tree tree, Context context) {
+  LIST _LIST(Tree tree) {
     assertTree(tree, java_libbashParser.LIST);
     int count = tree.getChildCount();
-    Object last = null;
+    Node[] blocks = new Node[count];
     for (int index = 0; index < count;index++) {
-      Tree child = tree.getChild(index);
+      final Tree child = tree.getChild(index);
+      Node block;
       switch (child.getType()) {
         case java_libbashParser.COMMAND: {
-          Block block = _COMMAND(child, context);
-          last = context.execute(new Process[]{block.createProcess(context)});
+          block = _COMMAND(child);
           break;
         }
         case java_libbashParser.PIPE: {
-          List<Block> blocks = _PIPE(child, context);
-          Process[] pipeline = new Process[blocks.size()];
-          int c = 0;
-          for (Block block : blocks) {
-            pipeline[c++] = block.createProcess(context);
-          }
-          last  = context.execute(pipeline);
+          final List<Node> pipeline = _PIPE(child);
+          block = new PIPE(pipeline);
           break;
         }
         default:
           throw unsupported(child);
       }
+      blocks[index] = block;
     }
-    return last;
+    return new LIST(blocks);
   }
 
-  private List<Block> _PIPE(Tree tree, Context context) {
+  private List<Node> _PIPE(Tree tree) {
     assertTree(tree, java_libbashParser.PIPE);
-    LinkedList<Block> ret = new LinkedList<Block>();
+    LinkedList<Node> ret = new LinkedList<Node>();
     Tree rest = tree.getChild(0);
     switch (rest.getType()) {
       case java_libbashParser.COMMAND:
-        ret.add(_COMMAND(rest, context));
+        ret.add(_COMMAND(rest));
         break;
       case java_libbashParser.PIPE: {
-        ret.addAll(_PIPE(rest, context));
+        ret.addAll(_PIPE(rest));
         break;
       }
       default:
         throw unsupported(rest);
     }
-    Block last = _COMMAND(tree.getChild(1), context);
+    Node last = _COMMAND(tree.getChild(1));
     ret.add(last);
     return ret;
   }
@@ -604,7 +388,7 @@ public class Script {
     printTree(writer, "", tree);
   }
 
-  void printTree(PrintWriter writer, String padding, Tree tree) {
+  static void printTree(PrintWriter writer, String padding, Tree tree) {
     writer.print(padding);
     writer.print("tree: ");
     String type = constants.get(tree.getType());

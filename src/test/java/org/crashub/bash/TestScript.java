@@ -114,6 +114,13 @@ public class TestScript extends TestCase {
     assertEquals("3", i);
   }
 
+  public void testUnsetVariableEvaluation() throws Exception {
+    Script script = new Script("i=$does_not_exist\n");
+    TestableContext context = new TestableContext();
+    context.eval(script);
+    assertEquals("", context.getBinding("i"));
+  }
+
   public void testARITHMETIC_EXPRESSION_LESS_THAN() throws Exception {
     assertEquals("0", eval("$((2<2))\n"));
     assertEquals("1", eval("$((2<3))\n"));
@@ -450,5 +457,15 @@ public class TestScript extends TestCase {
     }
     catch (RuntimeException expected) {
     }
+  }
+
+  public void testFunctionShellVariable() throws Exception {
+    Script script = new Script("hello() { f=$1; g=$2; h=$#; }");
+    TestableContext context = new TestableContext();
+    context.eval(script);
+    context.eval(new Script("hello world"));
+    assertEquals("world", context.getBinding("f"));
+    assertEquals("", context.getBinding("g"));
+    assertEquals("1", context.getBinding("h"));
   }
 }

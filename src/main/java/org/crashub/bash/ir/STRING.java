@@ -19,8 +19,14 @@ public class STRING extends Expression<String> {
     StringBuilder sb = new StringBuilder();
     for (Object chunk : chunks) {
       if (chunk instanceof Node) {
-        sb.append(((Node)chunk).eval(bindings, context));
+        Object value = ((Node)chunk).eval(bindings, context);
+        if (value != null) {
+          sb.append(value);
+        }
       } else {
+        if (chunk == null) {
+          throw new AssertionError("Look at this case");
+        }
         sb.append(chunk);
       }
     }

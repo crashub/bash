@@ -40,7 +40,7 @@ public class BaseContext extends Context {
   }
 
   final CommandResolver commandResolver;
-  final Map<String, Node> functions;
+  final Map<String, Function> functions;
   protected final InputStream standardInput;
   protected final OutputStream standardOutput;
   protected final Scope bindingScope;
@@ -58,11 +58,11 @@ public class BaseContext extends Context {
     this.standardInput = standardInput;
     this.standardOutput = standardOutput;
     this.bindingScope = bindingScope;
-    this.functions = new HashMap<String, Node>();
+    this.functions = new HashMap<String, Function>();
   }
 
   @Override
-  public void setFunction(String name, Node function) {
+  public void setFunction(String name, Function function) {
     if (function != null) {
       functions.put(name, function);
     } else {
@@ -71,15 +71,15 @@ public class BaseContext extends Context {
   }
 
   @Override
-  public Node getFunction(String name) {
+  public Function getFunction(String name) {
     return functions.get(name);
   }
 
   @Override
   public final Node createCommand(final String command, final List<String> parameters) {
-    Node function = functions.get(command);
+    Function function = functions.get(command);
     if (function != null) {
-      return function;
+      return function.bind(parameters);
     } else {
       return new Node() {
         @Override

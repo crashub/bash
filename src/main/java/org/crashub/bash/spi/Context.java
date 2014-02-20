@@ -17,7 +17,7 @@ public abstract class Context {
    * @param name the function name
    * @param function the function node
    */
-  public abstract void setFunction(String name, Node function);
+  public abstract void setFunction(String name, Function function);
 
   /**
    * Return a function.
@@ -25,7 +25,7 @@ public abstract class Context {
    * @param name the function name
    * @return the function node
    */
-  public abstract Node getFunction(String name);
+  public abstract Function getFunction(String name);
 
   /**
    * Create a process for the command.

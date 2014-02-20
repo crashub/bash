@@ -9,7 +9,7 @@ import org.crashub.bash.ir.COMPOUND_COND;
 import org.crashub.bash.ir.Command;
 import org.crashub.bash.ir.Comparator;
 import org.crashub.bash.ir.Expression;
-import org.crashub.bash.ir.Function;
+import org.crashub.bash.ir.FunctionNode;
 import org.crashub.bash.ir.IF_STATEMENT;
 import org.crashub.bash.ir.LIST;
 import org.crashub.bash.ir.Node;
@@ -170,6 +170,9 @@ public class Script {
     switch (childType) {
       case java_libbashParser.LETTER:
       case java_libbashParser.NAME:
+      case java_libbashParser.DIGIT:
+      case java_libbashParser.NUMBER:
+      case java_libbashParser.POUND:
         return new Expression.VarRef.Eval(child.getText());
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL:
       case java_libbashParser.DISPLAY_ERROR_WHEN_UNSET:
@@ -296,7 +299,7 @@ public class Script {
     Tree currentShell = assertTree(tree.getChild(1), java_libbashParser.CURRENT_SHELL);
     Tree list = currentShell.getChild((0));
     LIST body = _LIST(list);
-    return new Function(name, body);
+    return new FunctionNode(name, body);
   }
 
   private static String STRING_NAME(Tree tree) {

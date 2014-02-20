@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 
 /**
  * @author Julien Viet
@@ -18,9 +19,9 @@ public class COMPOUND_COND extends Node {
   }
 
   @Override
-  public Object eval(Context context) {
-    Object leftValue = left.eval(context);
-    Object rightValue = right.eval(context);
+  public Object eval(Scope bindings, Context context) {
+    Object leftValue = left.eval(bindings, context);
+    Object rightValue = right.eval(bindings, context);
     int leftV = toInt(leftValue);
     int rightV = toInt(rightValue);
     return comparator.compare(leftV, rightV);

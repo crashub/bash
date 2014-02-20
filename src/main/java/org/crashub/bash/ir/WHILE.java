@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 
 /**
  * @author Julien Viet
@@ -15,7 +16,7 @@ public class WHILE extends Loop {
   }
 
   @Override
-  protected Object test(Context context, boolean initialize) {
-    return test.eval(context);
+  protected Object test(Scope bindings, Context context, boolean initialize) {
+    return test.eval(bindings, context);
   }
 }

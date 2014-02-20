@@ -6,6 +6,7 @@ import jline.console.ConsoleReader;
 import org.crashub.bash.Script;
 import org.crashub.bash.spi.BaseContext;
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.SimpleScope;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -84,11 +85,12 @@ public class Main {
         }
       }
     }, System.out);
+    SimpleScope globalScope = new SimpleScope();
     while (true) {
       String s = reader.readLine("> ");
       Script script = new Script(s);
       try {
-        Object ret = script.eval(context);
+        Object ret = script.eval(globalScope, context);
         if (ret != null) {
           out.print("-> ");
           out.println(ret);

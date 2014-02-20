@@ -15,8 +15,10 @@ import org.crashub.bash.ir.LIST;
 import org.crashub.bash.ir.Node;
 import org.crashub.bash.ir.PIPE;
 import org.crashub.bash.ir.STRING;
+import org.crashub.bash.ir.SetLocal;
 import org.crashub.bash.ir.WHILE;
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 import org.gentoo.libbash.java_libbashLexer;
 import org.gentoo.libbash.java_libbashParser;
 
@@ -82,11 +84,12 @@ public class Script {
   /**
    * Evaluate the script.
    *
+   * @param bindings the global bindings
    * @param context the evaluation context
    * @return the evaluated value
    */
-  public Object eval(Context context) {
-    return toIR().eval(context);
+  public Object eval(Scope bindings, Context context) {
+    return toIR().eval(bindings, context);
   }
 
   static UnsupportedOperationException unsupported(Tree tree) {
@@ -238,19 +241,36 @@ public class Script {
     assertTree(tree, java_libbashParser.COMMAND);
     final Tree child = tree.getChild(0);
     switch (child.getType()) {
-      case java_libbashParser.STRING:
-        STRING command = _STRING(child);
-        int childCount = tree.getChildCount();
-        List<STRING> parameters;
-        if (childCount > 1) {
-          parameters = new ArrayList<STRING>(childCount - 1);
-          for (int index = 1;index < childCount;index++) {
-            parameters.add(_STRING(tree.getChild(index)));
+      case java_libbashParser.STRING: {
+        if (child.getChild(0).getType() == java_libbashParser.LOCAL) {
+          // Special case for local variables
+          // that seems weird
+          Tree t = tree.getChild(1);
+          String identifier = assertTree(t.getChild(0), java_libbashParser.NAME, java_libbashParser.LETTER).getText();
+          if (t.getChildCount() > 1) {
+            // Local + Assign
+            assertTree(t.getChild(1), java_libbashParser.EQUALS);
+            Expression expr = evalExpression(t.getChild(2));
+            return new SetLocal(identifier, new Expression.Assign(identifier, expr));
+          } else {
+            // Local only
+            return new SetLocal(identifier);
           }
         } else {
-          parameters = Collections.emptyList();
+          STRING command = _STRING(child);
+          int childCount = tree.getChildCount();
+          List<STRING> parameters;
+          if (childCount > 1) {
+            parameters = new ArrayList<STRING>(childCount - 1);
+            for (int index = 1;index < childCount;index++) {
+              parameters.add(_STRING(tree.getChild(index)));
+            }
+          } else {
+            parameters = Collections.emptyList();
+          }
+          return new Command(command, parameters);
         }
-        return new Command(command, parameters);
+      }
       case java_libbashParser.VARIABLE_DEFINITIONS:
         return _VARIABLE_DEFINITIONS(child);
       case java_libbashParser.WHILE:

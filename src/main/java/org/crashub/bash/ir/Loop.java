@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 
 /**
 * @author Julien Viet
@@ -13,20 +14,20 @@ abstract class Loop extends Node {
     this.body = body;
   }
 
-  protected abstract Object test(Context context, boolean initialize);
+  protected abstract Object test(Scope bindings, Context context, boolean initialize);
 
   @Override
-  public Object eval(final Context context) {
+  public Object eval(Scope bindings, final Context context) {
     boolean initialize = true;
     while  (true) {
-      Object value = test(context, initialize);
+      Object value = test(bindings, context, initialize);
       initialize = false;
       if (value instanceof Integer) {
         int v = (Integer) value;
         if (v == 0) {
           break;
         } else {
-          body.eval(context);
+          body.eval(bindings, context);
         }
       }
     }

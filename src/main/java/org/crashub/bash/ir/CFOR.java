@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 
 /**
  * @author Julien Viet
@@ -19,12 +20,12 @@ public class CFOR extends Loop {
   }
 
   @Override
-  protected Object test(Context context, boolean initialize) {
+  protected Object test(Scope bindings, Context context, boolean initialize) {
     if (initialize) {
-      init.eval(context);
+      init.eval(bindings, context);
     } else {
-      mod.eval(context);
+      mod.eval(bindings, context);
     }
-    return test.eval(context);
+    return test.eval(bindings, context);
   }
 }

@@ -3,7 +3,6 @@ package org.crashub.bash;
 import junit.framework.TestCase;
 import org.antlr.runtime.RecognitionException;
 import org.crashub.bash.spi.BaseContext;
-import org.crashub.bash.spi.Context;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -23,15 +22,15 @@ public class TestScript extends TestCase {
     return eval(new TestableContext(), s);
   }
 
-  private Object eval(Context context, String s) throws RecognitionException {
+  private Object eval(TestableContext context, String s) throws RecognitionException {
     Script script = new Script("a=" + s);
-    script.eval(context);
+    script.eval(context.bindings, context);
     return context.getBinding("a");
   }
 
   public void testCommand() throws Exception {
     final AtomicInteger count = new AtomicInteger();
-    Object ret = new Script("foo").eval(new TestableContext(new BaseContext.CommandResolver() {
+    Object ret = new TestableContext(new BaseContext.CommandResolver() {
       @Override
       public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if ("foo".equals(command) && parameters.isEmpty()) {
@@ -47,13 +46,13 @@ public class TestScript extends TestCase {
           return null;
         }
       }
-    }));
+    }).eval(new Script("foo"));
     assertEquals("foo_value", ret);
   }
 
   public void testCommandWithArgument() throws Exception {
     final AtomicInteger count = new AtomicInteger();
-    Object ret = new Script("foo bar").eval(new TestableContext(new BaseContext.CommandResolver() {
+    Object ret = new TestableContext(new BaseContext.CommandResolver() {
       @Override
       public Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if ("foo".equals(command) && Arrays.asList("bar").equals(parameters)) {
@@ -69,7 +68,7 @@ public class TestScript extends TestCase {
           return null;
         }
       }
-    }));
+    }).eval(new Script("foo bar"));
     assertEquals("foo_value", ret);
   }
 
@@ -87,10 +86,10 @@ public class TestScript extends TestCase {
         };
       }
     };
-    new Script("foo | bar").eval(new TestableContext(resolver));
+    new TestableContext(resolver).eval(new Script("foo | bar"));
     assertEquals(Arrays.asList("foo", "bar"), list);
     list.clear();
-    new Script("foo | bar | juu").eval(new TestableContext(resolver));
+    new TestableContext(resolver).eval(new Script("foo | bar | juu"));
     assertEquals(Arrays.asList("foo", "bar", "juu"), list);
   }
 
@@ -109,8 +108,8 @@ public class TestScript extends TestCase {
 
   public void testVARIABLE_DEFINITIONS() throws Exception {
     Script script = new Script("i=3\n");
-    Context context = new TestableContext();
-    script.eval(context);
+    TestableContext context = new TestableContext();
+    context.eval(script);
     Object i = context.getBinding("i");
     assertEquals("3", i);
   }
@@ -172,37 +171,37 @@ public class TestScript extends TestCase {
   }
 
   public void testARITHMETIC_EXPRESSION_PRE_INCR() throws Exception {
-    Context context1 = new TestableContext().bind("x", "5");
+    TestableContext context1 = new TestableContext().bind("x", "5");
     assertEquals("6", eval(context1, "$((++x))\n"));
     assertEquals(6, context1.getBinding("x"));
-    Context context2 = new TestableContext();
+    TestableContext context2 = new TestableContext();
     assertEquals("1", eval(context2, "$((++x))\n"));
     assertEquals(1, context2.getBinding("x"));
   }
 
   public void testARITHMETIC_EXPRESSION_PRE_DECR() throws Exception {
-    Context context1 = new TestableContext().bind("x", "5");
+    TestableContext context1 = new TestableContext().bind("x", "5");
     assertEquals("4", eval(context1, "$((--x))\n"));
     assertEquals(4, context1.getBinding("x"));
-    Context context2 = new TestableContext();
+    TestableContext context2 = new TestableContext();
     assertEquals("-1", eval(context2, "$((--x))\n"));
     assertEquals(-1, context2.getBinding("x"));
   }
 
   public void testARITHMETIC_EXPRESSION_POST_INCR() throws Exception {
-    Context context1 = new TestableContext().bind("x", "5");
+    TestableContext context1 = new TestableContext().bind("x", "5");
     assertEquals("5", eval(context1, "$((x++))\n"));
     assertEquals(6, context1.getBinding("x"));
-    Context context2 = new TestableContext();
+    TestableContext context2 = new TestableContext();
     assertEquals("0", eval(context2, "$((x++))\n"));
     assertEquals(1, context2.getBinding("x"));
   }
 
   public void testARITHMETIC_EXPRESSION_POST_DECR() throws Exception {
-    Context context1 = new TestableContext().bind("x", "5");
+    TestableContext context1 = new TestableContext().bind("x", "5");
     assertEquals("5", eval(context1, "$((x--))\n"));
     assertEquals(4, context1.getBinding("x"));
-    Context context2 = new TestableContext();
+    TestableContext context2 = new TestableContext();
     assertEquals("0", eval(context2, "$((x--))\n"));
     assertEquals(-1, context2.getBinding("x"));
   }
@@ -210,7 +209,7 @@ public class TestScript extends TestCase {
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
     assertEquals("foo", eval("'foo'\n"));
-    BaseContext context = new TestableContext().bind("abc", "def");
+    TestableContext context = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context, "${abc}"));
     assertEquals("${abc}", eval(context, "'${abc}'"));
   }
@@ -246,46 +245,46 @@ public class TestScript extends TestCase {
   }
 
   public void testASSIGN_DEFAULT_WHEN_UNSET() throws Exception {
-    Context context1 = new TestableContext();
+    TestableContext context1 = new TestableContext();
     assertEquals("ghi", eval(context1, "${abc=ghi}"));
     assertEquals("ghi", context1.getBinding("abc"));
-    Context context2 = new TestableContext().bind("abc", "def");
+    TestableContext context2 = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context2, "${abc=ghi}"));
     assertEquals("def", context2.getBinding("abc"));
-    Context context3 = new TestableContext().bind("abc", "");
+    TestableContext context3 = new TestableContext().bind("abc", "");
     assertEquals("", eval(context3, "${abc=ghi}"));
     assertEquals("", context3.getBinding("abc"));
   }
 
   public void testUSE_DEFAULT_WHEN_UNSET_OR_NULL() throws Exception {
-    Context context1 = new TestableContext();
+    TestableContext context1 = new TestableContext();
     assertEquals("ghi", eval(context1, "${abc:-ghi}"));
     assertEquals(null, context1.getBinding("abc"));
-    Context context2 = new TestableContext().bind("abc", "def");
+    TestableContext context2 = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context2, "${abc:-ghi}"));
     assertEquals("def", context2.getBinding("abc"));
-    Context context3 = new TestableContext().bind("abc", "");
+    TestableContext context3 = new TestableContext().bind("abc", "");
     assertEquals("ghi", eval(context3, "${abc:-ghi}"));
     assertEquals("", context3.getBinding("abc"));
   }
 
   public void testASSIGN_DEFAULT_WHEN_UNSET_OR_NULL() throws Exception {
-    Context context1 = new TestableContext();
+    TestableContext context1 = new TestableContext();
     assertEquals("ghi", eval(context1, "${abc:=ghi}"));
     assertEquals("ghi", context1.getBinding("abc"));
-    Context context2 = new TestableContext().bind("abc", "def");
+    TestableContext context2 = new TestableContext().bind("abc", "def");
     assertEquals("def", eval(context2, "${abc:=ghi}"));
     assertEquals("def", context2.getBinding("abc"));
-    Context context3 = new TestableContext().bind("abc", "");
+    TestableContext context3 = new TestableContext().bind("abc", "");
     assertEquals("ghi", eval(context3, "${abc:=ghi}"));
     assertEquals("ghi", context3.getBinding("abc"));
   }
 
   public void testVAR_REF() throws Exception {
     Script script = new Script("a=$((i))");
-    BaseContext context = new TestableContext();
+    TestableContext context = new TestableContext();
     context.bind("i", "3");
-    script.eval(context);
+    context.eval(script);
     assertEquals("3", context.getBinding("a"));
   }
 
@@ -297,8 +296,8 @@ public class TestScript extends TestCase {
         "i=$((i+1))\n" +
         "done");
     script.prettyPrint();
-    Context context = new TestableContext();
-    script.eval(context);
+    TestableContext context = new TestableContext();
+    context.eval(script);
     Object i = context.getBinding("i");
     assertEquals("6", i);
   }
@@ -309,11 +308,11 @@ public class TestScript extends TestCase {
         "do\n" +
         "j=$((i))\n" +
         "done");
-    Context context = new TestableContext();
-    script.eval(context);
+    TestableContext context = new TestableContext();
+    context.eval(script);
     assertEquals("5", context.getBinding("j"));
     assertEquals(6, context.getBinding("i"));
-    script.eval(context);
+    context.eval(script);
     assertEquals("5", context.getBinding("j"));
     assertEquals(6, context.getBinding("i"));
   }
@@ -330,13 +329,13 @@ public class TestScript extends TestCase {
         "fi"
     };
     for (String script : scripts) {
-      Context context1 = new TestableContext();
-      context1.setBinding("t", 1);
-      new Script(script).eval(context1);
+      TestableContext context1 = new TestableContext();
+      context1.bind("t", 1);
+      context1.eval(new Script(script));
       assertEquals("was_if", context1.getBinding("a"));
-      Context context2 = new TestableContext();
-      context2.setBinding("t", -1);
-      new Script(script).eval(context2);
+      TestableContext context2 = new TestableContext();
+      context2.bind("t", -1);
+      context2.eval(new Script(script));
       assertEquals(null, context2.getBinding("a"));
     }
   }
@@ -357,13 +356,13 @@ public class TestScript extends TestCase {
         "fi",
     };
     for (String script : scripts) {
-      Context context1 = new TestableContext();
-      context1.setBinding("t", 1);
-      new Script(script).eval(context1);
+      TestableContext context1 = new TestableContext();
+      context1.bind("t", 1);
+      context1.eval(new Script(script));
       assertEquals("was_if", context1.getBinding("a"));
-      Context context2 = new TestableContext();
-      context2.setBinding("t", -1);
-      new Script(script).eval(context2);
+      TestableContext context2 = new TestableContext();
+      context2.bind("t", -1);
+      context2.eval(new Script(script));
       assertEquals("was_else", context2.getBinding("a"));
     }
   }
@@ -394,7 +393,7 @@ public class TestScript extends TestCase {
         }
       }
     });
-    script.eval(context);
+    context.eval(script);
     assertEquals("12345", context.getStandardOutput());
   }
 
@@ -415,16 +414,41 @@ public class TestScript extends TestCase {
         }
       }
     });
-    script.eval(context);
+    context.eval(script);
     assertNotNull(context.getFunction("hello"));
-    assertEquals("foo_value", new Script("hello").eval(context));
+    assertEquals("foo_value", context.eval(new Script("hello")));
   }
 
   public void testFunctionVariable() throws Exception {
     Script script = new Script("hello() { f=5; }");
     TestableContext context = new TestableContext();
-    script.eval(context);
-    new Script("hello").eval(context);
+    context.eval(script);
+    context.eval(new Script("hello"));
     assertEquals("5", context.getBinding("f"));
+  }
+
+  public void testFunctionLocalVariable() throws Exception {
+    String[] scripts = {
+        "hello() { local f=5; g=$f; }",
+        "hello() { local f; f=5; g=$f; }"
+    };
+    for (String script : scripts) {
+      TestableContext context = new TestableContext();
+      context.eval(new Script(script));
+      context.eval(new Script("hello"));
+      assertEquals(null, context.getBinding("f"));
+      assertEquals("5", context.getBinding("g"));
+    }
+  }
+
+  public void testLocalVariable() throws Exception {
+    Script script = new Script("local a=0");
+    TestableContext context = new TestableContext();
+    try {
+      context.eval(script);
+      fail();
+    }
+    catch (RuntimeException expected) {
+    }
   }
 }

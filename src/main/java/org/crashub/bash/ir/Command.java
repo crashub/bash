@@ -22,12 +22,12 @@ public class Command extends Node {
   }
 
   @Override
-  public Object eval(Context context) {
+  public Object eval(Scope bindings, Context context) {
     List<String> parameterValues = parameters.isEmpty() ? Collections.<String>emptyList() : new ArrayList<String>(parameters.size());
     for (STRING parameter : parameters) {
-      parameterValues.add(parameter.eval(context));
+      parameterValues.add(parameter.eval(bindings, context));
     }
-    String nameValue = name.eval(context);
-    return context.execute(context.createCommand(nameValue, parameterValues));
+    String nameValue = name.eval(bindings, context);
+    return context.execute(bindings, context.createCommand(nameValue, parameterValues));
   }
 }

@@ -19,7 +19,7 @@ import java.util.concurrent.Callable;
  *
  * @author Julien Viet
  */
-public class BaseContext implements Context {
+public class BaseContext extends Context {
 
   /**
    * Provides command plugability.
@@ -39,53 +39,26 @@ public class BaseContext implements Context {
 
   }
 
-  /** . */
   final CommandResolver commandResolver;
-
-  /** . */
-  final Map<String, Object> bindings;
-
-  /** . */
   final Map<String, Node> functions;
-
-  /** . */
   protected final InputStream standardInput;
-
-  /** . */
   protected final OutputStream standardOutput;
+  protected final Scope bindingScope;
 
   public BaseContext(CommandResolver commandResolver, OutputStream standardOutput) {
     this(commandResolver, new ByteArrayInputStream(new byte[0]), standardOutput);
   }
 
   public BaseContext(CommandResolver commandResolver, InputStream standardInput, OutputStream standardOutput) {
-    this(commandResolver, standardInput, standardOutput, new HashMap<String, Object>());
+    this(commandResolver, standardInput, standardOutput, new SimpleScope());
   }
 
-  public BaseContext(CommandResolver commandResolver, InputStream standardInput, OutputStream standardOutput, Map<String, Object> bindings) {
+  public BaseContext(CommandResolver commandResolver, InputStream standardInput, OutputStream standardOutput, Scope bindingScope) {
     this.commandResolver = commandResolver;
     this.standardInput = standardInput;
     this.standardOutput = standardOutput;
-    this.bindings = bindings;
+    this.bindingScope = bindingScope;
     this.functions = new HashMap<String, Node>();
-  }
-
-  // Fluent method
-  public BaseContext bind(String name, Object value) {
-    setBinding(name, value);
-    return this;
-  }
-
-  public Object getBinding(String name) {
-    return bindings.get(name);
-  }
-
-  public void setBinding(String name, Object value) {
-    if (value != null) {
-      bindings.put(name, value);
-    } else {
-      bindings.remove(name);
-    }
   }
 
   @Override
@@ -110,7 +83,7 @@ public class BaseContext implements Context {
     } else {
       return new Node() {
         @Override
-        public Object eval(Context context) {
+        public Object eval(Scope bindings, Context context) {
           BaseContext nested = (BaseContext)context;
           Callable<?> impl = commandResolver.resolveCommand(
               command,
@@ -133,13 +106,13 @@ public class BaseContext implements Context {
   }
 
   @Override
-  public final Object execute(Node[] pipeline) {
+  public final Object execute(Scope bindings, Node[] pipeline) {
     Object last = null;
     InputStream in = standardInput;
     for (int i = 0;i < pipeline.length;i++) {
       Node process = pipeline[i];
       if (i == pipeline.length - 1) {
-        last = process.eval(new BaseContext(commandResolver, in, standardOutput, bindings));
+        last = process.eval(bindings, new BaseContext(commandResolver, in, standardOutput, bindingScope));
         try {
           standardOutput.flush();
         }
@@ -148,7 +121,7 @@ public class BaseContext implements Context {
         }
       } else {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        last = process.eval(new BaseContext(commandResolver, in, buffer, bindings));
+        last = process.eval(bindings, new BaseContext(commandResolver, in, buffer, bindingScope));
         try {
           buffer.close();
         }
@@ -159,10 +132,5 @@ public class BaseContext implements Context {
       }
     }
     return last;
-  }
-
-  @Override
-  public String toString() {
-    return "bindings: " + bindings;
   }
 }

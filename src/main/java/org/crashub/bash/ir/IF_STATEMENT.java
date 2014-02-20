@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 
 /**
  * @author Julien Viet
@@ -18,14 +19,14 @@ public class IF_STATEMENT extends Node<Object> {
   }
 
   @Override
-  public Object eval(Context context) {
-    Object b = test.eval(context);
+  public Object eval(Scope bindings, Context context) {
+    Object b = test.eval(bindings, context);
     int v = toInt(b);
     if (v != 0) {
-      return then.eval(context);
+      return then.eval(bindings, context);
     } else {
       if (else_ != null) {
-        return else_.eval(context);
+        return else_.eval(bindings, context);
       } else {
         return null;
       }

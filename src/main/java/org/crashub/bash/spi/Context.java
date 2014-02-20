@@ -10,30 +10,14 @@ import java.util.List;
  *
  * @author Julien Viet
  */
-public interface Context {
-
-  /**
-   * Returns a binding.
-   *
-   * @param name the binding name
-   * @return the binding valuee
-   */
-  Object getBinding(String name);
-
-  /**
-   * Set a binding.
-   *
-   * @param name the binding name
-   * @param value the binding value
-   */
-  void setBinding(String name, Object value);
+public abstract class Context {
 
   /**
    * Set a function.
    * @param name the function name
    * @param function the function node
    */
-  void setFunction(String name, Node function);
+  public abstract void setFunction(String name, Node function);
 
   /**
    * Return a function.
@@ -41,7 +25,7 @@ public interface Context {
    * @param name the function name
    * @return the function node
    */
-  Node getFunction(String name);
+  public abstract Node getFunction(String name);
 
   /**
    * Create a process for the command.
@@ -50,14 +34,17 @@ public interface Context {
    * @param parameters the command parameters
    * @return the command process
    */
-  Node createCommand(String command, List<String> parameters);
+  public abstract Node createCommand(String command, List<String> parameters);
 
   /**
    * Execute a process pipeline.
    *
+   *
+   *
+   * @param bindings
    * @param pipeline the pipeline
    * @return the pipeline result
    */
-  Object execute(Node... pipeline);
+  public abstract Object execute(Scope bindings, Node... pipeline);
 
 }

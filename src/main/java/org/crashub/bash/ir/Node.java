@@ -23,10 +23,11 @@ public abstract class Node<R> {
   /**
    * Eval the node and return a result.
    *
+   * @param bindings
    * @param context the evaluation context
    * @return the evalutation result
    */
-  public abstract R eval(Context context);
+  public abstract R eval(Scope bindings, Context context);
 
 
 }

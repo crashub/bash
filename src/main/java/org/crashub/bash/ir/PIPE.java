@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class PIPE extends Node {
   }
 
   @Override
-  public Object eval(Context context) {
-    return context.execute(elements.toArray(new Node[elements.size()]));
+  public Object eval(Scope bindings, Context context) {
+    return context.execute(bindings, elements.toArray(new Node[elements.size()]));
   }
 }

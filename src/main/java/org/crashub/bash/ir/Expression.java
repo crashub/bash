@@ -1,6 +1,7 @@
 package org.crashub.bash.ir;
 
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 import org.gentoo.libbash.java_libbashParser;
 
 /**
@@ -17,7 +18,7 @@ public abstract class Expression<R> extends Node<R> {
     }
 
     @Override
-    public Integer eval(Context context) {
+    public Integer eval(Scope bindings, Context context) {
       return value;
     }
   }
@@ -35,9 +36,9 @@ public abstract class Expression<R> extends Node<R> {
     }
 
     @Override
-    public Object eval(Context context) {
-      Object left = this.left.eval(context);
-      Object right = this.right.eval(context);
+    public Object eval(Scope bindings, Context context) {
+      Object left = this.left.eval(bindings, context);
+      Object right = this.right.eval(bindings, context);
       int l = toInt(left);
       int r = toInt(right);
       switch (type) {
@@ -80,10 +81,10 @@ public abstract class Expression<R> extends Node<R> {
     }
 
     @Override
-    public Object eval(Context context) {
-      Object value = rhs.eval(context);
-      context.setBinding(identifier, value);
-      return rhs;
+    public Object eval(Scope bindings, Context context) {
+      Object value = rhs.eval(bindings, context);
+      bindings.setValue(identifier, value);
+      return null;
     }
   }
 
@@ -101,8 +102,8 @@ public abstract class Expression<R> extends Node<R> {
     }
 
     @Override
-    public Integer eval(Context context) {
-      Object o = context.getBinding(varRef.identifier);
+    public Integer eval(Scope bindings, Context context) {
+      Object o = bindings.getValue(varRef.identifier);
       int val;
       if (o == null) {
         val = 0;
@@ -126,7 +127,7 @@ public abstract class Expression<R> extends Node<R> {
         default:
           throw new AssertionError();
       }
-      context.setBinding(varRef.identifier, next);
+      bindings.setValue(varRef.identifier, next);
       return val;
     }
   }
@@ -144,8 +145,8 @@ public abstract class Expression<R> extends Node<R> {
         super(identifier);
       }
       @Override
-      public Object eval(Context context) {
-        return context.getBinding(identifier);
+      public Object eval(Scope bindings, Context context) {
+        return bindings.getValue(identifier);
       }
     }
 
@@ -161,9 +162,9 @@ public abstract class Expression<R> extends Node<R> {
         this.message = message;
       }
       @Override
-      public Object eval(Context context) {
+      public Object eval(Scope bindings, Context context) {
         int action;
-        Object o = context.getBinding(identifier);
+        Object o = bindings.getValue(identifier);
         if (o != null) {
           if (o.toString().length() > 0) {
             return o;
@@ -187,7 +188,7 @@ public abstract class Expression<R> extends Node<R> {
             action = ACTION_DISPLAY;
           }
         }
-        String s = message.eval(context);
+        String s = message.eval(bindings, context);
         switch (action) {
           case ACTION_DISPLAY: {
             throw new RuntimeException(s);
@@ -196,7 +197,7 @@ public abstract class Expression<R> extends Node<R> {
             return s;
           }
           case ACTION_ASSIGN: {
-            context.setBinding(identifier, s);
+            bindings.setValue(identifier, s);
             return s;
           }
           default:

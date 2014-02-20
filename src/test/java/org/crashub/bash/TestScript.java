@@ -209,7 +209,10 @@ public class TestScript extends TestCase {
 
   public void testSTRING() throws Exception {
     assertEquals("2+3", eval("2+3\n"));
-    assertEquals("def", eval(new TestableContext().bind("abc", "def"), "${abc}"));
+    assertEquals("foo", eval("'foo'\n"));
+    BaseContext context = new TestableContext().bind("abc", "def");
+    assertEquals("def", eval(context, "${abc}"));
+    assertEquals("${abc}", eval(context, "'${abc}'"));
   }
 
   public void testDISPLAY_ERROR_WHEN_UNSET() throws Exception {

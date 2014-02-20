@@ -291,6 +291,12 @@ public class Script {
         case java_libbashParser.BLANK:
           o = child.getText();
           break;
+        case java_libbashParser.SINGLE_QUOTED_STRING: {
+          Tree token = assertTree(child.getChild(0), java_libbashParser.SINGLE_QUOTED_STRING_TOKEN);
+          String value = token.getText();
+          o = value.substring(1, value.length() - 1);
+          break;
+        }
         default:
           throw Script.unsupported(child);
       }

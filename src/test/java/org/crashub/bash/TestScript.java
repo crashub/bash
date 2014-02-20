@@ -419,4 +419,12 @@ public class TestScript extends TestCase {
     assertNotNull(context.getFunction("hello"));
     assertEquals("foo_value", new Script("hello").eval(context));
   }
+
+  public void testFunctionVariable() throws Exception {
+    Script script = new Script("hello() { f=5; }");
+    TestableContext context = new TestableContext();
+    script.eval(context);
+    new Script("hello").eval(context);
+    assertEquals("5", context.getBinding("f"));
+  }
 }

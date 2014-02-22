@@ -71,38 +71,37 @@ public class BaseContext extends Context {
   }
 
   @Override
-  public Function getFunction(String name) {
-    return functions.get(name);
-  }
-
-  @Override
-  public final Node createCommand(final String command, final List<String> parameters) {
-    Function function = functions.get(command);
-    if (function != null) {
-      return function.bind(parameters);
-    } else {
-      return new Node() {
+  public Function getFunction(final String name) {
+    Function function = functions.get(name);
+    if (function == null) {
+      return new Function() {
         @Override
-        public Object eval(Scope bindings, Context context) {
-          BaseContext nested = (BaseContext)context;
-          Callable<?> impl = commandResolver.resolveCommand(
-              command,
-              parameters,
-              nested.standardInput,
-              nested.standardOutput);
-          if (impl == null) {
-            throw new UnsupportedOperationException("Command " + command + " not implemented");
-          }
-          try {
-            return impl.call();
-          }
-          catch (Exception e) {
-            // Should be done better later when we take care of exception handling
-            throw new UndeclaredThrowableException(e);
-          }
+        public Node bind(final List<String> parameters) {
+          return new Node() {
+            @Override
+            public Object eval(Scope bindings, Context context) {
+              BaseContext nested = (BaseContext)context;
+              Callable<?> impl = commandResolver.resolveCommand(
+                  name,
+                  parameters,
+                  nested.standardInput,
+                  nested.standardOutput);
+              if (impl == null) {
+                throw new UnsupportedOperationException("Command " + name + " not implemented");
+              }
+              try {
+                return impl.call();
+              }
+              catch (Exception e) {
+                // Should be done better later when we take care of exception handling
+                throw new UndeclaredThrowableException(e);
+              }
+            }
+          };
         }
       };
     }
+    return function;
   }
 
   @Override

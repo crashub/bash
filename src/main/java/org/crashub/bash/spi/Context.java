@@ -14,27 +14,19 @@ public abstract class Context {
 
   /**
    * Set a function.
+   *
    * @param name the function name
    * @param function the function node
    */
   public abstract void setFunction(String name, Function function);
 
   /**
-   * Return a function.
+   * Return a named function.
    *
    * @param name the function name
    * @return the function node
    */
   public abstract Function getFunction(String name);
-
-  /**
-   * Create a process for the command.
-   *
-   * @param command the command name to execute
-   * @param parameters the command parameters
-   * @return the command process
-   */
-  public abstract Node createCommand(String command, List<String> parameters);
 
   /**
    * Execute a process pipeline.

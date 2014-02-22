@@ -167,24 +167,35 @@ public abstract class Expression<R> extends Node<R> {
         Object o = bindings.getValue(identifier);
         if (o != null) {
           if (o.toString().length() > 0) {
-            return o;
+            // Normal case
+            if (type == java_libbashParser.USE_ALTERNATE_WHEN_UNSET) {
+              action = ACTION_USE;
+            } else {
+              return o;
+            }
           } else {
+            // Null case
             if (type == java_libbashParser.DISPLAY_ERROR_WHEN_UNSET_OR_NULL) {
               action = ACTION_DISPLAY;
             } else if (type == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
               action = ACTION_USE;
             } else if (type == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
               action = ACTION_ASSIGN;
+            } else if (type == java_libbashParser.USE_ALTERNATE_WHEN_UNSET) {
+              action = ACTION_USE;
             } else {
               return o;
             }
           }
         } else {
+          // Unset case
           if (type == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET || type == java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL) {
             action = ACTION_ASSIGN;
           } else if (type == java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL) {
             action = ACTION_USE;
-          }else {
+          } else if (type == java_libbashParser.USE_ALTERNATE_WHEN_UNSET) {
+            return null;
+          } else {
             action = ACTION_DISPLAY;
           }
         }

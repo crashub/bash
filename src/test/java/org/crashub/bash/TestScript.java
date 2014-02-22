@@ -274,6 +274,18 @@ public class TestScript extends TestCase {
     assertEquals("ghi", context3.getBinding("abc"));
   }
 
+  public void testUSE_ALTERNATE_WHEN_UNSET() throws Exception {
+    Shell context1 = new Shell();
+    assertEquals("", eval(context1, "${abc+ghi}"));
+    assertEquals(null, context1.getBinding("abc"));
+    Shell context2 = new Shell().bind("abc", "def");
+    assertEquals("ghi", eval(context2, "${abc+ghi}"));
+    assertEquals("def", context2.getBinding("abc"));
+    Shell context3 = new Shell().bind("abc", "");
+    assertEquals("ghi", eval(context3, "${abc+ghi}"));
+    assertEquals("", context3.getBinding("abc"));
+  }
+
   public void testVAR_REF() throws Exception {
     Script script = new Script("a=$((i))");
     Shell context = new Shell();

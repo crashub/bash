@@ -179,6 +179,7 @@ public class Script {
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET:
       case java_libbashParser.ASSIGN_DEFAULT_WHEN_UNSET_OR_NULL:
       case java_libbashParser.USE_DEFAULT_WHEN_UNSET_OR_NULL:
+      case java_libbashParser.USE_ALTERNATE_WHEN_UNSET:
         return new Expression.VarRef.Default(
             child.getChild(0).getText(),
             child.getType(),

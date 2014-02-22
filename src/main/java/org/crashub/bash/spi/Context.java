@@ -39,10 +39,8 @@ public abstract class Context {
   /**
    * Execute a process pipeline.
    *
-   *
-   *
-   * @param bindings
-   * @param pipeline the pipeline
+   * @param bindings the bindings for the execution
+   * @param pipeline the pipeline to execute
    * @return the pipeline result
    */
   public abstract Object execute(Scope bindings, Node... pipeline);

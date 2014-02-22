@@ -11,7 +11,6 @@ import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 
 /**
  * A base context implementation that uses {@link java.io.InputStream} and {@link java.io.OutputStream} streams. Should
@@ -27,23 +26,36 @@ public class BaseContext extends Context {
   public interface CommandResolver {
 
     /**
-     * Resolve a command implementation.
+     * Resolve a command, return null if no command can be resolved.
      *
      * @param command the command name
-     * @param parameters the command parameters
-     * @param standardInput the standard input
-     * @param standardOutput the standard output
-     * @return a callable invoking the command or null if the command could not be resolved
+     * @return a command invoking the command or null if the command could not be resolved
      */
-    Callable<?> resolveCommand(String command, List<String> parameters, InputStream standardInput, OutputStream standardOutput);
+    Command resolveCommand(String command);
 
   }
 
-  final CommandResolver commandResolver;
-  final Map<String, Function> functions;
-  protected final InputStream standardInput;
-  protected final OutputStream standardOutput;
-  protected final Scope bindingScope;
+  /**
+   * A command.
+   */
+  public interface Command {
+
+    /**
+     * Execute the command.
+     *
+     * @param parameters the command parameters
+     * @param standardInput the standard input
+     * @param standardOutput the standard output
+     */
+    Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput);
+
+  }
+
+  private final CommandResolver commandResolver;
+  private final Map<String, Function> functions;
+  private final InputStream standardInput;
+  private final OutputStream standardOutput;
+  private final Scope bindingScope;
 
   public BaseContext(CommandResolver commandResolver, OutputStream standardOutput) {
     this(commandResolver, new ByteArrayInputStream(new byte[0]), standardOutput);
@@ -71,35 +83,26 @@ public class BaseContext extends Context {
   }
 
   @Override
-  public Function getFunction(final String name) {
+  public Function resolveFunction(final String name) {
     Function function = functions.get(name);
     if (function == null) {
-      return new Function() {
-        @Override
-        public Node bind(final List<String> parameters) {
-          return new Node() {
-            @Override
-            public Object eval(Scope bindings, Context context) {
-              BaseContext nested = (BaseContext)context;
-              Callable<?> impl = commandResolver.resolveCommand(
-                  name,
-                  parameters,
-                  nested.standardInput,
-                  nested.standardOutput);
-              if (impl == null) {
-                throw new UnsupportedOperationException("Command " + name + " not implemented");
+      final Command command = commandResolver.resolveCommand(name);
+      if (command == null) {
+        throw new UnsupportedOperationException("Implement me " + name);
+      } else {
+        return new Function() {
+          @Override
+          public Node bind(final List<String> parameters) {
+            return new Node() {
+              @Override
+              public Object eval(Scope bindings, Context context) {
+                BaseContext nested = (BaseContext)context;
+                return command.execute(parameters, nested.standardInput, nested.standardOutput);
               }
-              try {
-                return impl.call();
-              }
-              catch (Exception e) {
-                // Should be done better later when we take care of exception handling
-                throw new UndeclaredThrowableException(e);
-              }
-            }
-          };
-        }
-      };
+            };
+          }
+        };
+      }
     }
     return function;
   }

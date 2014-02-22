@@ -36,12 +36,12 @@ public class Main {
     ConsoleReader reader = new ConsoleReader(null, in, out, term);
     Context context = new BaseContext(new BaseContext.CommandResolver() {
       @Override
-      public Callable<?> resolveCommand(String command, final List<String> parameters, final InputStream standardInput, OutputStream standardOutput) {
-        final PrintWriter writer = new PrintWriter(standardOutput, true);
+      public BaseContext.Command resolveCommand(String command) {
         if ("echo".equals(command)) {
-          return new Callable<Object>() {
+          return new BaseContext.Command() {
             @Override
-            public Object call() throws Exception {
+            public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+              PrintWriter writer = new PrintWriter(standardOutput, true);
               for (String parameter : parameters) {
                 writer.println(parameter);
               }
@@ -49,10 +49,11 @@ public class Main {
             }
           };
         } if ("grep".equals(command)) {
-          final Pattern pattern = Pattern.compile(parameters.get(0));
-          return new Callable<Object>() {
+          return new BaseContext.Command() {
             @Override
-            public Object call() throws Exception {
+            public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+              PrintWriter writer = new PrintWriter(standardOutput, true);
+              Pattern pattern = Pattern.compile(parameters.get(0));
               Scanner scanner = new Scanner(standardInput);
               while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
@@ -64,9 +65,10 @@ public class Main {
             }
           };
         } else if ("sort".equals(command)) {
-          return new Callable<Object>() {
+          return new BaseContext.Command() {
             @Override
-            public Object call() throws Exception {
+            public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+              PrintWriter writer = new PrintWriter(standardOutput, true);
               ArrayList<String> lines = new ArrayList<String>();
               Scanner scanner = new Scanner(standardInput);
               while (scanner.hasNextLine()) {

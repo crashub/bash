@@ -21,12 +21,12 @@ public abstract class Context {
   public abstract void setFunction(String name, Function function);
 
   /**
-   * Return a named function.
+   * Resolve a named function.
    *
    * @param name the function name
    * @return the function node
    */
-  public abstract Function getFunction(String name);
+  public abstract Function resolveFunction(String name);
 
   /**
    * Execute a process pipeline.

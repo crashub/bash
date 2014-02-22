@@ -28,7 +28,7 @@ public class Command extends Node {
       parameterValues.add(parameter.eval(bindings, context));
     }
     String nameValue = name.eval(bindings, context);
-    Function f = context.getFunction(nameValue);
+    Function f = context.resolveFunction(nameValue);
     Node node = f.bind(parameterValues);
     return context.execute(bindings, node);
   }

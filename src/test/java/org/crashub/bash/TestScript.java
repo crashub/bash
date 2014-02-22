@@ -418,7 +418,8 @@ public class TestScript extends TestCase {
   public void testFunctionLocalVariable() throws Exception {
     String[] scripts = {
         "hello() { local f=5; g=$f; }",
-        "hello() { local f; f=5; g=$f; }"
+        "hello() { local f; f=5; g=$f; }",
+        "hello() { local f; g=${f+5}; }"
     };
     for (String script : scripts) {
       Shell context = new Shell();

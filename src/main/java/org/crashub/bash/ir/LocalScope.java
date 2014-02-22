@@ -14,11 +14,11 @@ import java.util.Set;
 public class LocalScope extends SimpleScope {
 
   private final Scope global;
-  private Set<String> localNames;
+  private Set<String> locals; // The local declarations
 
   public LocalScope(Scope global, List<String> parameters) {
     this.global = global;
-    this.localNames = Collections.emptySet();
+    this.locals = Collections.emptySet();
 
     // Should we declare them local too ?
     int size = parameters.size();
@@ -31,11 +31,12 @@ public class LocalScope extends SimpleScope {
     super.setValue("#", parameters.size());
   }
 
-  void declareLocal(String name) {
-    if (localNames.isEmpty()) {
-      localNames = new HashSet<String>();
+  void declareLocal(String name, Object value) {
+    if (locals.isEmpty()) {
+      locals = new HashSet<String>();
     }
-    localNames.add(name);
+    locals.add(name);
+    super.setValue(name, value);
   }
 
   @Override
@@ -49,7 +50,7 @@ public class LocalScope extends SimpleScope {
 
   @Override
   public void setValue(String name, Object value) {
-    if (localNames.contains(name)) {
+    if (locals.contains(name)) {
       super.setValue(name, value);
     } else {
       global.setValue(name, value);

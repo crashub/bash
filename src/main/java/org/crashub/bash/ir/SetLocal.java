@@ -25,7 +25,7 @@ public class SetLocal extends Node {
   public Object eval(Scope bindings, Context context) {
     if (bindings instanceof LocalScope) {
       LocalScope functionBindings = (LocalScope)bindings;
-      functionBindings.declareLocal(identifier);
+      functionBindings.declareLocal(identifier, "");
     } else {
       throw new RuntimeException("local: can only be used in a function");
     }

@@ -452,6 +452,21 @@ public class TestScript extends TestCase {
     assertEquals("1", context.getBinding("h"));
   }
 
+  public void testParameters() throws Exception {
+    Script script = new Script("foo bar juu");
+    Shell shell = new Shell();
+    final List<String> params = new ArrayList<String>();
+    shell.command("foo", new BaseContext.Command() {
+      @Override
+      public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+        params.addAll(parameters);
+        return null;
+      }
+    });
+    shell.eval(script);
+    assertEquals(Arrays.asList("bar", "juu"), params);
+  }
+
   public void testReadOnly() throws Exception {
     Script script = new Script("foo=bar");
     Shell shell = new Shell();

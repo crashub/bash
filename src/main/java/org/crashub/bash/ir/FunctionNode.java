@@ -27,7 +27,16 @@ public class FunctionNode extends Node  {
         return new Node() {
           @Override
           public Object eval(Scope bindings, Context context) {
-            return body.eval(new LocalScope(bindings, parameters), context);
+            LocalScope functionScope = new LocalScope(bindings);
+            int size = parameters.size();
+            if (size > 0) {
+              for (int i = 0;i < size;i++) {
+                String name = Integer.toString(i + 1);
+                functionScope.setValue(name, parameters.get(i));
+              }
+            }
+            functionScope.setValue("#", parameters.size());
+            return body.eval(functionScope, context);
           }
         };
       }

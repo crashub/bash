@@ -5,7 +5,6 @@ import org.crashub.bash.spi.SimpleScope;
 
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -16,27 +15,16 @@ public class LocalScope extends SimpleScope {
   private final Scope global;
   private Set<String> locals; // The local declarations
 
-  public LocalScope(Scope global, List<String> parameters) {
+  public LocalScope(Scope global) {
     this.global = global;
     this.locals = Collections.emptySet();
-
-    // Should we declare them local too ?
-    int size = parameters.size();
-    if (size > 0) {
-      for (int i = 0;i < size;i++) {
-        String name = Integer.toString(i + 1);
-        super.setValue(name, parameters.get(i));
-      }
-    }
-    super.setValue("#", parameters.size());
   }
 
-  void declareLocal(String name, Object value) {
+  void declareLocal(String name) {
     if (locals.isEmpty()) {
       locals = new HashSet<String>();
     }
     locals.add(name);
-    super.setValue(name, value);
   }
 
   @Override

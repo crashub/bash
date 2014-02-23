@@ -43,11 +43,13 @@ public class BaseContext extends Context {
     /**
      * Execute the command.
      *
+     * @param context the context of execution
+     * @param bindings the current bindings
      * @param parameters the command parameters
      * @param standardInput the standard input
      * @param standardOutput the standard output
      */
-    Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput);
+    Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput);
 
   }
 
@@ -97,7 +99,7 @@ public class BaseContext extends Context {
               @Override
               public Object eval(Scope bindings, Context context) {
                 BaseContext nested = (BaseContext)context;
-                return command.execute(parameters, nested.standardInput, nested.standardOutput);
+                return command.execute(nested, bindings, parameters, nested.standardInput, nested.standardOutput);
               }
             };
           }
@@ -138,6 +140,7 @@ public class BaseContext extends Context {
 
   private static class Value {
     Object o;
+    boolean readOnly = false;
   }
 
   @Override
@@ -152,6 +155,18 @@ public class BaseContext extends Context {
     if (wrapper == null) {
       scope.setValue(name, wrapper = new Value());
     }
+    if (wrapper.readOnly) {
+      throw new RuntimeException(name + ": readonly variable");
+    }
     wrapper.o = value;
+  }
+
+  public void setReadOnly(Scope bindings, String name, Object value) {
+    Value wrapper = (Value)bindings.getValue(name);
+    if (wrapper == null) {
+      bindings.setValue(name, wrapper = new Value());
+      wrapper.o = value;
+    }
+    wrapper.readOnly = true;
   }
 }

@@ -10,7 +10,7 @@ public class STRING extends Expression<String> {
 
   final Object[] chunks;
 
-  public STRING(Object[] chunks) {
+  public STRING(Object... chunks) {
     this.chunks = chunks;
   }
 

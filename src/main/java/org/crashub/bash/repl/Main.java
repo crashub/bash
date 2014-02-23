@@ -6,6 +6,7 @@ import jline.console.ConsoleReader;
 import org.crashub.bash.Script;
 import org.crashub.bash.spi.BaseContext;
 import org.crashub.bash.spi.Context;
+import org.crashub.bash.spi.Scope;
 import org.crashub.bash.spi.SimpleScope;
 
 import java.io.FileDescriptor;
@@ -18,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
 /**
@@ -40,7 +40,7 @@ public class Main {
         if ("echo".equals(command)) {
           return new BaseContext.Command() {
             @Override
-            public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+            public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
               PrintWriter writer = new PrintWriter(standardOutput, true);
               for (String parameter : parameters) {
                 writer.println(parameter);
@@ -51,7 +51,7 @@ public class Main {
         } if ("grep".equals(command)) {
           return new BaseContext.Command() {
             @Override
-            public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+            public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
               PrintWriter writer = new PrintWriter(standardOutput, true);
               Pattern pattern = Pattern.compile(parameters.get(0));
               Scanner scanner = new Scanner(standardInput);
@@ -67,7 +67,7 @@ public class Main {
         } else if ("sort".equals(command)) {
           return new BaseContext.Command() {
             @Override
-            public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+            public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
               PrintWriter writer = new PrintWriter(standardOutput, true);
               ArrayList<String> lines = new ArrayList<String>();
               Scanner scanner = new Scanner(standardInput);

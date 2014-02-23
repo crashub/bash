@@ -4,6 +4,7 @@ import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 import org.antlr.runtime.RecognitionException;
 import org.crashub.bash.spi.BaseContext;
+import org.crashub.bash.spi.Scope;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,7 +33,7 @@ public class TestScript extends TestCase {
     final AtomicInteger count = new AtomicInteger();
     Object ret = new Shell().command("foo", new BaseContext.Command() {
       @Override
-      public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+      public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         count.incrementAndGet();
         return "foo_value";
       }
@@ -44,7 +45,7 @@ public class TestScript extends TestCase {
     final AtomicInteger count = new AtomicInteger();
     Object ret = new Shell().command("foo", new BaseContext.Command() {
       @Override
-      public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+      public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         if (Arrays.asList("bar").equals(parameters)) {
           count.incrementAndGet();
           return "foo_value";
@@ -64,7 +65,7 @@ public class TestScript extends TestCase {
       CommandImpl(String name) {
         this.name = name;
       }
-      public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+      public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         list.add(name);
         return null;
       }
@@ -381,7 +382,7 @@ public class TestScript extends TestCase {
         "done");
     Shell context = new Shell().command("echo", new BaseContext.Command() {
       @Override
-      public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+      public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         PrintWriter writer = new PrintWriter(standardOutput, true);
         for (String parameter : parameters) {
           writer.print(parameter);
@@ -398,7 +399,7 @@ public class TestScript extends TestCase {
     Script script = new Script("hello() { foo; }");
     Shell context = new Shell().command("foo", new BaseContext.Command() {
       @Override
-      public Object execute(List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+      public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
         return "foo_value";
       }
     });
@@ -449,5 +450,18 @@ public class TestScript extends TestCase {
     assertEquals("world", context.getBinding("f"));
     assertEquals("", context.getBinding("g"));
     assertEquals("1", context.getBinding("h"));
+  }
+
+  public void testReadOnly() throws Exception {
+    Script script = new Script("foo=bar");
+    Shell shell = new Shell();
+    shell.context.setReadOnly(shell.bindings, "foo", "foo_value");
+    try {
+      shell.eval(script);
+      fail();
+    }
+    catch (RuntimeException e) {
+    }
+    assertEquals("foo_value", shell.getBinding("foo"));
   }
 }

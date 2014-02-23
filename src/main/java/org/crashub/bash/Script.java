@@ -136,7 +136,7 @@ public class Script {
   }
 
   private static Expression.Assign _EQUALS(Tree tree) {
-    Tree lhsTree = assertTree(tree.getChild(0), java_libbashParser.LETTER);
+    Tree lhsTree = assertTree(tree.getChild(0), java_libbashParser.LETTER, java_libbashParser.NAME);
     final Tree rhsTree = tree.getChild(1);
     String identifier = lhsTree.getText();
     Node rhs;
@@ -261,7 +261,12 @@ public class Script {
             return new SetLocal(identifier);
           }
         } else {
-          STRING command = _STRING(child);
+          STRING command;
+          if (child.getChild(0).getType() == java_libbashParser.DECLARE) {
+            command = new STRING("declare");
+          } else {
+            command = _STRING(child);
+          }
           int childCount = tree.getChildCount();
           List<STRING> parameters;
           if (childCount > 1) {
@@ -330,6 +335,10 @@ public class Script {
           break;
         case java_libbashParser.PLUS:
           o = "+";
+          break;
+        case java_libbashParser.MINUS:
+          // Shoud we handle options there ?
+          o = "-";
           break;
         case java_libbashParser.VAR_REF:
           o = Script._VAR_REF(child);

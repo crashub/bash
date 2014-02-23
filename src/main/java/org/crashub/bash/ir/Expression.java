@@ -83,7 +83,7 @@ public abstract class Expression<R> extends Node<R> {
     @Override
     public Object eval(Scope bindings, Context context) {
       Object value = rhs.eval(bindings, context);
-      bindings.setValue(identifier, value);
+      context.setValue(bindings, identifier, value);
       return null;
     }
   }
@@ -103,7 +103,7 @@ public abstract class Expression<R> extends Node<R> {
 
     @Override
     public Integer eval(Scope bindings, Context context) {
-      Object o = bindings.getValue(varRef.identifier);
+      Object o = context.getValue(bindings, varRef.identifier);
       int val;
       if (o == null) {
         val = 0;
@@ -127,7 +127,7 @@ public abstract class Expression<R> extends Node<R> {
         default:
           throw new AssertionError();
       }
-      bindings.setValue(varRef.identifier, next);
+      context.setValue(bindings, varRef.identifier, next);
       return val;
     }
   }
@@ -146,7 +146,7 @@ public abstract class Expression<R> extends Node<R> {
       }
       @Override
       public Object eval(Scope bindings, Context context) {
-        return bindings.getValue(identifier);
+        return context.getValue(bindings, identifier);
       }
     }
 
@@ -164,7 +164,7 @@ public abstract class Expression<R> extends Node<R> {
       @Override
       public Object eval(Scope bindings, Context context) {
         int action;
-        Object o = bindings.getValue(identifier);
+        Object o = context.getValue(bindings, identifier);
         if (o != null) {
           if (o.toString().length() > 0) {
             // Normal case
@@ -208,7 +208,7 @@ public abstract class Expression<R> extends Node<R> {
             return s;
           }
           case ACTION_ASSIGN: {
-            bindings.setValue(identifier, s);
+            context.setValue(bindings, identifier, s);
             return s;
           }
           default:

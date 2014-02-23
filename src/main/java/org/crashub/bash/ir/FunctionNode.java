@@ -32,10 +32,10 @@ public class FunctionNode extends Node  {
             if (size > 0) {
               for (int i = 0;i < size;i++) {
                 String name = Integer.toString(i + 1);
-                functionScope.setValue(name, parameters.get(i));
+                context.setValue(functionScope, name, parameters.get(i));
               }
             }
-            functionScope.setValue("#", parameters.size());
+            context.setValue(functionScope, "#", parameters.size());
             return body.eval(functionScope, context);
           }
         };

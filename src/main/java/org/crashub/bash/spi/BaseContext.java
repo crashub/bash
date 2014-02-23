@@ -135,4 +135,23 @@ public class BaseContext extends Context {
     }
     return last;
   }
+
+  private static class Value {
+    Object o;
+  }
+
+  @Override
+  public Object getValue(Scope scope, String name) {
+    Value value = (Value)scope.getValue(name);
+    return value != null ? value.o : null;
+  }
+
+  @Override
+  public void setValue(Scope scope, String name, Object value) {
+    Value wrapper = (Value)scope.getValue(name);
+    if (wrapper == null) {
+      scope.setValue(name, wrapper = new Value());
+    }
+    wrapper.o = value;
+  }
 }

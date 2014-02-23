@@ -37,7 +37,7 @@ public class Shell {
    * @return the binding valuee
    */
   public final Object getBinding(String name) {
-    return bindings.getValue(name);
+    return context.getValue(bindings, name);
   }
 
   /**
@@ -47,7 +47,7 @@ public class Shell {
    * @param value the binding value
    */
   public final void setBinding(String name, Object value) {
-    bindings.setValue(name, value);
+    context.setValue(bindings, name, value);
   }
 
   public Shell bind(String name, Object value) {

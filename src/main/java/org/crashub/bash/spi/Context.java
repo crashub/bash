@@ -37,4 +37,7 @@ public abstract class Context {
    */
   public abstract Object execute(Scope bindings, Node... pipeline);
 
+  public abstract Object getValue(Scope scope, String name);
+
+  public abstract void setValue(Scope scope, String name, Object value);
 }

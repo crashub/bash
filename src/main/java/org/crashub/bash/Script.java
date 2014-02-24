@@ -241,6 +241,50 @@ public class Script {
     }
   }
 
+  // Utility class for creating STRING
+  private static class STRINGBuilder extends LinkedList<Object> {
+
+    void append(Tree tree) {
+      Object o;
+      switch (tree.getType()) {
+        case java_libbashParser.DIGIT:
+          o = Integer.parseInt(tree.getText());
+          break;
+        case java_libbashParser.ARITHMETIC_EXPRESSION:
+          o = Script._ARITHMETIC_EXPRESSION(tree);
+          break;
+        case java_libbashParser.PLUS:
+          o = "+";
+          break;
+        case java_libbashParser.MINUS:
+          // Shoud we handle options there ?
+          o = "-";
+          break;
+        case java_libbashParser.VAR_REF:
+          o = Script._VAR_REF(tree);
+          break;
+        case java_libbashParser.LETTER:
+        case java_libbashParser.NAME:
+        case java_libbashParser.BLANK:
+          o = tree.getText();
+          break;
+        case java_libbashParser.SINGLE_QUOTED_STRING: {
+          Tree token = assertTree(tree.getChild(0), java_libbashParser.SINGLE_QUOTED_STRING_TOKEN);
+          String value = token.getText();
+          o = value.substring(1, value.length() - 1);
+          break;
+        }
+        default:
+          throw Script.unsupported(tree);
+      }
+      add(o);
+    }
+
+    STRING toSTRING() {
+      return new STRING(toArray());
+    }
+  }
+
   private Node _COMMAND(Tree tree) {
     assertTree(tree, java_libbashParser.COMMAND);
     final Tree child = tree.getChild(0);
@@ -262,20 +306,41 @@ public class Script {
           }
         } else {
           STRING command;
+          List<STRING> parameters;
           if (child.getChild(0).getType() == java_libbashParser.DECLARE) {
             command = new STRING("declare");
-          } else {
-            command = _STRING(child);
-          }
-          int childCount = tree.getChildCount();
-          List<STRING> parameters;
-          if (childCount > 1) {
-            parameters = new ArrayList<STRING>(childCount - 1);
-            for (int index = 1;index < childCount;index++) {
-              parameters.add(_STRING(tree.getChild(index)));
+            if (tree.getChildCount() > 1) {
+              Tree s = assertTree(tree.getChild(1), java_libbashParser.STRING);
+              parameters = new ArrayList<STRING>();
+              STRINGBuilder builder = new STRINGBuilder();
+              for (int i = 0;i < s.getChildCount();i++) {
+                Tree e = s.getChild(i);
+                if (e.getType() == java_libbashParser.BLANK) {
+                  if (!builder.isEmpty()) {
+                    parameters.add(builder.toSTRING());
+                    builder.clear();
+                  }
+                } else {
+                  builder.add(e);
+                }
+              }
+              if (!builder.isEmpty()) {
+                parameters.add(builder.toSTRING());
+              }
+            } else {
+              parameters = Collections.emptyList();
             }
           } else {
-            parameters = Collections.emptyList();
+            command = _STRING(child);
+            int childCount = tree.getChildCount();
+            if (childCount > 1) {
+              parameters = new ArrayList<STRING>(childCount - 1);
+              for (int index = 1;index < childCount;index++) {
+                parameters.add(_STRING(tree.getChild(index)));
+              }
+            } else {
+              parameters = Collections.emptyList();
+            }
           }
           return new Command(command, parameters);
         }
@@ -322,44 +387,12 @@ public class Script {
 
   private static STRING _STRING(Tree tree) {
     Script.assertTree(tree, java_libbashParser.STRING);
-    Object[] chunks = new Object[tree.getChildCount()];
+    STRINGBuilder builder = new STRINGBuilder();
     for (int i = 0;i < tree.getChildCount();i++) {
       Tree child = tree.getChild(i);
-      Object o;
-      switch (child.getType()) {
-        case java_libbashParser.DIGIT:
-          o = Integer.parseInt(child.getText());
-          break;
-        case java_libbashParser.ARITHMETIC_EXPRESSION:
-          o = Script._ARITHMETIC_EXPRESSION(child);
-          break;
-        case java_libbashParser.PLUS:
-          o = "+";
-          break;
-        case java_libbashParser.MINUS:
-          // Shoud we handle options there ?
-          o = "-";
-          break;
-        case java_libbashParser.VAR_REF:
-          o = Script._VAR_REF(child);
-          break;
-        case java_libbashParser.LETTER:
-        case java_libbashParser.NAME:
-        case java_libbashParser.BLANK:
-          o = child.getText();
-          break;
-        case java_libbashParser.SINGLE_QUOTED_STRING: {
-          Tree token = assertTree(child.getChild(0), java_libbashParser.SINGLE_QUOTED_STRING_TOKEN);
-          String value = token.getText();
-          o = value.substring(1, value.length() - 1);
-          break;
-        }
-        default:
-          throw Script.unsupported(child);
-      }
-      chunks[i] = o;
+      builder.append(child);
     }
-    return new STRING(chunks);
+    return builder.toSTRING();
   }
 
   private Node _COMPOUND_COND(Tree tree) {

@@ -90,7 +90,7 @@ public class BaseContext extends Context {
     if (function == null) {
       final Command command = commandResolver.resolveCommand(name);
       if (command == null) {
-        throw new UnsupportedOperationException("Implement me " + name);
+        throw new UnsupportedOperationException(name + ": command not found");
       } else {
         return new Function() {
           @Override

@@ -17,6 +17,7 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Scanner;
 import java.util.regex.Pattern;
@@ -78,6 +79,50 @@ public class Main {
               Collections.sort(lines);
               for (String line : lines) {
                 writer.println(line);
+              }
+              return null;
+            }
+          };
+        } else if ("declare".equals(command)) {
+          return new BaseContext.Command() {
+            @Override
+            public Object execute(BaseContext context, Scope bindings, List<String> parameters, InputStream standardInput, OutputStream standardOutput) {
+              boolean readOnly = false;
+              int index = 0;
+              int size = parameters.size();
+              while (index < size) {
+                String parameter = parameters.get(index);
+                if (parameter.startsWith("-")) {
+                  for (int j = 1;j < parameter.length();j++) {
+                    char opt = parameter.charAt(j);
+                    switch (opt) {
+                      case 'r':
+                        readOnly = true;
+                        break;
+                      default:
+                        throw new RuntimeException("Unsupported option " + opt);
+                    }
+                  }
+                  index++;
+                } else {
+                  break;
+                }
+              }
+              while (index < size) {
+                String s = parameters.get(index++);
+                String name;
+                String value;
+                int pos = s.indexOf('=');
+                if (pos == -1) {
+                  name = s;
+                  value = "";
+                } else {
+                  name = s.substring(0, pos);
+                  value = s.substring(pos + 1);
+                }
+                if (readOnly) {
+                  context.setReadOnly(bindings, name, value);
+                }
               }
               return null;
             }

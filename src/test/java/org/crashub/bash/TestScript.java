@@ -479,4 +479,49 @@ public class TestScript extends TestCase {
     }
     assertEquals("foo_value", shell.getBinding("foo"));
   }
+
+  // Many test to do for read only too
+  // this is not complete
+
+  /**
+   * > foo=4;declare -i foo;echo $foo;unset foo
+   * 4
+   */
+  public void testInteger1() throws Exception {
+    Shell shell = new Shell();
+    shell.eval(new Script("foo=4"));
+    shell.context.setInteger(shell.bindings, "foo", null);
+    assertEquals("4", eval(shell, "$foo"));
+    assertEquals("4", shell.getBinding("foo"));
+  }
+
+  /**
+   * > declare -i foo;echo $foo;unset foo
+   */
+  public void testInteger2() throws Exception {
+    Shell shell = new Shell();
+    shell.context.setInteger(shell.bindings, "foo", null);
+    assertEquals("", eval(shell, "$foo"));
+    assertNull(shell.getBinding("foo"));
+  }
+
+  /**
+   * > foo=bar;declare -i foo;echo $foo;foo=juu;echo $foo;foo=4;echo $foo;unset foo
+   * bar
+   * 0
+   * 4
+   */
+  public void testInteger3() throws Exception {
+    Shell shell = new Shell();
+    shell.eval(new Script("foo=bar"));
+    shell.context.setInteger(shell.bindings, "foo", null);
+    assertEquals("bar", eval(shell, "$foo"));
+    assertEquals("bar", shell.getBinding("foo"));
+    shell.eval(new Script("foo=juu"));
+    assertEquals("0", eval(shell, "$foo"));
+    assertEquals(0, shell.getBinding("foo"));
+    shell.eval(new Script("foo=4"));
+    assertEquals("4", eval(shell, "$foo"));
+    assertEquals(4, shell.getBinding("foo"));
+  }
 }

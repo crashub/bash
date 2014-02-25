@@ -141,6 +141,7 @@ public class BaseContext extends Context {
   private static class Value {
     Object o;
     boolean readOnly = false;
+    boolean integer = false;
   }
 
   @Override
@@ -157,16 +158,66 @@ public class BaseContext extends Context {
     }
     if (wrapper.readOnly) {
       throw new RuntimeException(name + ": readonly variable");
+    } else {
+      if (wrapper.integer) {
+        value = toInteger(value);
+      }
+      wrapper.o = value;
     }
-    wrapper.o = value;
   }
 
+  /**
+   * Set a binding as read only.
+   *
+   * @param bindings  the bindings
+   * @param name the name
+   * @param value the value
+   */
   public void setReadOnly(Scope bindings, String name, Object value) {
     Value wrapper = (Value)bindings.getValue(name);
     if (wrapper == null) {
       bindings.setValue(name, wrapper = new Value());
-      wrapper.o = value;
+    } else {
+      if (wrapper.readOnly) {
+        return;
+      }
     }
+    wrapper.o = value;
     wrapper.readOnly = true;
+  }
+
+  /**
+   * Set a binding as integer.
+   *
+   * @param bindings the bindings
+   * @param name the name
+   * @param value the optional value
+   */
+  public void setInteger(Scope bindings, String name, Object value) {
+    Value wrapper = (Value)bindings.getValue(name);
+    if (wrapper == null) {
+      bindings.setValue(name, wrapper = new Value());
+    } else {
+      if (wrapper.readOnly) {
+        return;
+      }
+    }
+    if (value != null) {
+      wrapper.o = toInteger(value);
+    }
+    wrapper.integer = true;
+  }
+
+  private static Integer toInteger(Object o) {
+    if (o instanceof Number) {
+      return ((Number)o).intValue();
+    } else {
+      try {
+        return Integer.parseInt(o.toString());
+      }
+      catch (NumberFormatException e) {
+        return 0;
+      }
+    }
   }
 }

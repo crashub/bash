@@ -451,20 +451,66 @@ public class TestScript extends TestCase {
     assertEquals(Arrays.asList("bar", "juu"), params);
   }
 
-  public void testReadOnly() throws Exception {
+  /**
+   * > foo=bar;declare -r foo;echo $foo
+   * bar
+   */
+  public void testReadOnly1() throws Exception {
     Shell shell = new Shell();
-    shell.context.setReadOnly(shell.bindings, "foo", "foo_value");
-    try {
-      shell.eval("foo=bar");
-      fail();
+    shell.eval("foo=bar");
+    shell.context.setReadOnly(shell.bindings, "foo", null);
+    for (int i = 0;i < 2;i++) {
+      assertEquals("bar", shell.expression("$foo"));
+      assertEquals("bar", shell.getBinding("foo"));
+      try {
+        shell.eval("foo=whatever");
+        fail();
+      }
+      catch (RuntimeException e) {
+      }
     }
-    catch (RuntimeException e) {
-    }
-    assertEquals("foo_value", shell.getBinding("foo"));
   }
 
-  // Many test to do for read only too
-  // this is not complete
+  /**
+   * > foo=bar;declare -r foo=juu;echo $foo
+   * juu
+   */
+  public void testReadOnly2() throws Exception {
+    Shell shell = new Shell();
+    shell.eval("foo=bar");
+    shell.context.setReadOnly(shell.bindings, "foo", "juu");
+    for (int i = 0;i < 2;i++) {
+      assertEquals("juu", shell.expression("$foo"));
+      assertEquals("juu", shell.getBinding("foo"));
+      try {
+        shell.eval("foo=whatever");
+        fail();
+      }
+      catch (RuntimeException e) {
+      }
+    }
+  }
+
+  /**
+   * > declare -r foo;echo $foo;echo ${foo+present}
+   *
+   * present
+   */
+  public void testReadOnly3() throws Exception {
+    Shell shell = new Shell();
+    shell.context.setReadOnly(shell.bindings, "foo", null);
+    for (int i = 0;i < 2;i++) {
+      assertEquals("", shell.expression("$foo"));
+      assertEquals("", shell.getBinding("foo"));
+      assertEquals("present", shell.expression("${foo+present}"));
+      try {
+        shell.eval("foo=whatever");
+        fail();
+      }
+      catch (RuntimeException e) {
+      }
+    }
+  }
 
   /**
    * > foo=4;declare -i foo;echo $foo;unset foo
@@ -479,13 +525,16 @@ public class TestScript extends TestCase {
   }
 
   /**
-   * > declare -i foo;echo $foo;unset foo
+   * > declare -i foo;echo $foo;echo ${foo+present};unset foo
+   *
+   * present
    */
   public void testInteger2() throws Exception {
     Shell shell = new Shell();
     shell.context.setInteger(shell.bindings, "foo", null);
     assertEquals("", shell.expression("$foo"));
-    assertNull(shell.getBinding("foo"));
+    assertEquals("", shell.getBinding("foo"));
+    assertEquals("present", shell.expression("${foo+present}"));
   }
 
   /**

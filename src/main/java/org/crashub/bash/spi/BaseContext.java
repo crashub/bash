@@ -147,7 +147,20 @@ public class BaseContext extends Context {
   @Override
   public Object getValue(Scope scope, String name) {
     Value value = (Value)scope.getValue(name);
-    return value != null ? value.o : null;
+    if (value != null) {
+      Object ret = value.o;
+      if (ret == null) {
+        if (value.integer || value.readOnly) {
+          return "";
+        } else {
+          throw new AssertionError("Not covered/expected");
+        }
+      } else {
+        return ret;
+      }
+    } else {
+      return null;
+    }
   }
 
   @Override
@@ -159,6 +172,11 @@ public class BaseContext extends Context {
     if (wrapper.readOnly) {
       throw new RuntimeException(name + ": readonly variable");
     } else {
+      if (value == null) {
+        if (!wrapper.integer) {
+          throw new AssertionError("Not covered/expected");
+        }
+      }
       if (wrapper.integer) {
         value = toInteger(value);
       }
@@ -182,7 +200,9 @@ public class BaseContext extends Context {
         return;
       }
     }
-    wrapper.o = value;
+    if (value != null) {
+      wrapper.o = value;
+    }
     wrapper.readOnly = true;
   }
 

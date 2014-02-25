@@ -1,5 +1,6 @@
 package org.crashub.bash;
 
+import org.antlr.runtime.RecognitionException;
 import org.crashub.bash.spi.BaseContext;
 import org.crashub.bash.spi.SimpleScope;
 
@@ -57,5 +58,15 @@ public class Shell {
 
   public Object eval(Script script) {
     return script.eval(bindings, context);
+  }
+
+  public Object eval(String s) throws RecognitionException {
+    return eval(new Script(s));
+  }
+
+  Object expression(String s) throws RecognitionException {
+    Script script = new Script("a=" + s);
+    script.eval(bindings, this.context);
+    return getBinding("a");
   }
 }
